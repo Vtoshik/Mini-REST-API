@@ -8,4 +8,10 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Environment variables
 .env
+.flaskenv
+
+# Other files
+flask_commands.txt
