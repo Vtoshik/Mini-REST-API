@@ -39,6 +39,7 @@ if not database_url:
 # Configure PostgreSQL database
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Avoids warning
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY','dev_secret_key')
 
 db.init_app(app)
 migrate = Migrate(app, db)
