@@ -5,25 +5,35 @@
    </head>
    <body>
       <h3>Profiles</h3>
-      <a href="/add_data">ADD</a>
+      <a href="/add_data">Create User</a>
+
       <br>
+      <form action="/show_users" method="get">
+         <button type="submit">Show all Users</button>
+      </form>
+      {% if profiles %}
       <table>
          <thead>
-            <th>Id</th>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Created At</th>
-            <th>#</th>
+            <tr>
+               <th>Username</th>
+               <th>#</th>
+               <th>##</th>
+            </tr>
          </thead>
-         {% for data in profiles %}
          <tbody>
-            <td>{{data.id}}</td>
-            <td>{{data.username}}</td>
-            <td>{{data.email}}</td>
-            <td>{{data.created_at}}</td>
-            <td><a href="/delete/{{data.id}}" type="button">Delete</a></td>
+            {% for data in profiles %}
+            <tr>
+               <td>{{data.username}}</td>
+               <td><a href="/user/{{data.id}}" type="button">Info</a></td>
+               <td><a href="/delete/{{data.id}}" type="button">Delete</a></td>
+            </tr>
+         {% endfor %}
          </tbody>
-         {% endfor%}
       </table>
+      {% endif %}
+
+      <br>
+      <h3>Notes</h3>
+      <a href=""></a>
    </body>
 </html>
