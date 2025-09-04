@@ -6,6 +6,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="{{ url_for('static', filename='TogglePassword.js') }}"></script>
+    <script src="{{ url_for('static', filename='FormValidation.js') }}"></script>
 </head>
 <body>
     <div class="container">
@@ -18,7 +19,7 @@
 
                 <div class="form-group">
                     <label for="username" class="login-label">Username</label>
-                    <input type="text" id="username" name="username" placeholder="username...">
+                    <input type="text" id="username" name="username" placeholder="username..." autofocus>
                 </div>
 
                 <div class="form-group">
@@ -35,6 +36,8 @@
                 </div>
 
                 <button type="submit" id="register-btn">Register</button>
+                <button type="button" class="back-login-btn" 
+                    onclick="window.location.href='/login'">Back to Login</button>
 
                 {% if error %}
                 <div class="error-message">
@@ -43,9 +46,14 @@
                 </div>
                 {% endif %}
 
-                <button type="button" class="back-login-btn" onclick="window.location.href='/login'">
-                Back to Login
-                </button>
+                <div id="client-error" class="error-message" style="display:none;">
+                    <svg style="vertical-align: middle;" width="18" height="18" viewBox="0 0 20 20">
+                        <circle cx="10" cy="10" r="10" fill="#e74c3c"/>
+                        <text x="10" y="15" text-anchor="middle" fill="#fff" font-size="13" font-family="Arial">!</text>
+                    </svg>
+                    <span id="client-error-text" style="margin-left: 8px;"></span>
+                </div>
+
             </form>
         </div>
     </div>
