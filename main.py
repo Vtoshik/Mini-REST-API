@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, redirect
 from flask_migrate import Migrate
 from urllib.parse import unquote
 from dotenv import load_dotenv
+from flask_wtf import CSRFProtect
 import psycopg2
 import os
 
@@ -14,6 +15,7 @@ from models.note import Note
 from routes import user_bp
 
 app = Flask(__name__)
+csrf = CSRFProtect(app)
 
 load_dotenv()
 

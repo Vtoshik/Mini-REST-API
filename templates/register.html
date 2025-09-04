@@ -15,6 +15,7 @@
                 <svg width="48" height="48" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="#2ecc71"/></svg>
             </div>
             <form action="/register" method="POST" autocomplete="off" class="register-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <h3 class="login">Registration</h3>
 
                 <div class="form-group">
