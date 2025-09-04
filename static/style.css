@@ -236,3 +236,25 @@ button.register-btn:hover { background: linear-gradient(135deg, #e74c3c 70%, #a9
     .login { font-size: 22px; }
     button, .back-login-btn { font-size: 15px; padding: 9px; }
 }
+
+/*---------password---------*/
+
+.password-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.password-wrapper input {
+    width: 100%;
+    padding-right: 40px;
+}
+
+.toggle-password {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #888;
+    font-size: 18px;
+}
