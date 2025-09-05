@@ -12,5 +12,20 @@ class User(db.Model):
     status = db.Column(db.String(20), nullable = False, default = "user")
     notes = db.relationship('Note', backref='user', lazy=True)
 
+    def __init__(self, username, email, password):
+        self.username = username
+        self.email = email
+        self.password = password
+
     def __repr__(self):
-        return f"Name : {self.id}, username : {self.username}, email : {self.email}, created_at: {self.created_at}"
+        return f'<User {self.username}>'
+
+    def json(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "email": self.email,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "status": self.status,
+            "notes": [note.json() for note in self.notes] if self.notes else []
+        }

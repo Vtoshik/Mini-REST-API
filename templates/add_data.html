@@ -6,7 +6,6 @@
    <body>
       <h3>Profile form</h3>
       <form action="/add_data" method="POST">
-         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
          <label>Username</label>
          <input type="text" name="username" placeholder="username...">
          <label>Email</label>

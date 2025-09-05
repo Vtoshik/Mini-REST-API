@@ -4,7 +4,6 @@ from flask import Flask, render_template, request, redirect
 from flask_migrate import Migrate
 from urllib.parse import unquote
 from dotenv import load_dotenv
-from flask_wtf import CSRFProtect
 import psycopg2
 import os
 
@@ -12,11 +11,10 @@ import os
 from database import db
 from models.user import User
 from models.note import Note
-from routes import user_bp
+from api_routes import api_bp
+from user_routes import user_bp
 
 app = Flask(__name__)
-csrf = CSRFProtect(app)
-
 load_dotenv()
 
 database_url = os.environ.get("DATABASE_URL")
@@ -46,6 +44,7 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY','dev_secret_key')
 db.init_app(app)
 migrate = Migrate(app, db)
 app.register_blueprint(user_bp)
+app.register_blueprint(api_bp)
 
 if __name__ == "__main__":
     app.run(debug=True)
