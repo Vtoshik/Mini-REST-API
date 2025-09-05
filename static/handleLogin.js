@@ -1,4 +1,3 @@
-// static/handleLogin.js
 document.addEventListener('DOMContentLoaded', () => {
     async function handleLogin(event) {
         event.preventDefault();
@@ -23,10 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(data)
             });
 
-            // Перевірка статусу перед парсингом
             if (!response.ok) {
-                const text = await response.text(); // Отримуємо текст відповіді
-                console.log('Response text:', text); // Для діагностики
+                const text = await response.text();
+                console.log('Response text:', text);
                 const errorDiv = document.getElementById('client-error');
                 const errorText = document.getElementById('client-error-text');
                 errorText.textContent = `Error ${response.status}: ${text || 'Unknown error'}`;
@@ -34,8 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const result = await response.json(); // Парсимо JSON лише якщо статус OK
-
+            const result = await response.json();
+            
             if (response.ok) {
                 sessionStorage.setItem('user_id', result.user_id);
                 window.location.href = '/';

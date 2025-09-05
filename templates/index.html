@@ -2,6 +2,8 @@
 <html>
    <head>
       <title>Index Page</title>
+      <script src="{{ url_for('static', filename='loadUsers.js') }}"></script>
+      <script src="{{ url_for('static', filename='handleDelete.js') }}"></script>
    </head>
    <body>
       <h3>Profiles</h3>
@@ -11,7 +13,6 @@
       <form action="/show_users" method="get">
          <button type="submit">Show all Users</button>
       </form>
-      {% if profiles %}
       <table>
          <thead>
             <tr>
@@ -21,20 +22,13 @@
             </tr>
          </thead>
          <tbody>
-            {% for data in profiles %}
-            <tr>
-               <td>{{data.username}}</td>
-               <td><a href="/user/{{data.id}}" type="button">Info</a></td>
-               <td><a href="/delete/{{data.id}}" type="button">Delete</a></td>
-            </tr>
-         {% endfor %}
+            <!-- Динамічно заповнюється через JavaScript -->
          </tbody>
       </table>
-      {% endif %}
 
       <br>
       <h3>Notes</h3>
-      <a href=""></a>
+      <a href="#"></a>
 
       <br>
       <a href="/logout">Logout</a>

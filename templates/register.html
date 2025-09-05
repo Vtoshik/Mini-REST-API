@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="{{ url_for('static', filename='TogglePassword.js') }}"></script>
     <script src="{{ url_for('static', filename='FormValidation.js') }}"></script>
+    <script src="{{ url_for('static', filename='handleRegister.js') }}"></script>
 </head>
 <body>
     <div class="container">
@@ -14,7 +15,7 @@
             <div class="login-icon">
                 <svg width="48" height="48" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="#2ecc71"/></svg>
             </div>
-            <form action="/register" method="POST" autocomplete="off" class="register-form">
+            <form onsubmit="handleRegister(event)" autocomplete="off" class="register-form">
                 <h3 class="login">Registration</h3>
 
                 <div class="form-group">
@@ -36,8 +37,7 @@
                 </div>
 
                 <button type="submit" id="register-btn">Register</button>
-                <button type="button" class="back-login-btn" 
-                    onclick="window.location.href='/login'">Back to Login</button>
+                <button type="button" class="back-login-btn" onclick="window.location.href='/login'">Back to Login</button>
 
                 {% if error %}
                 <div class="error-message">
@@ -53,7 +53,6 @@
                     </svg>
                     <span id="client-error-text" style="margin-left: 8px;"></span>
                 </div>
-
             </form>
         </div>
     </div>

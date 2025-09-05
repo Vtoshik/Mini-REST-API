@@ -76,7 +76,7 @@ class UserResource(Resource):
         if not user:
             return {"message": "Authentication required"}, 401
         user = User.query.get_or_404(user_id)
-        return {"id": user.id, "username": user.username, "email": user.email, "created_at": user.created_at.isoformat()}, 200
+        return {"id": user.id, "username": user.username, "email": user.email, "status": user.status, "created_at": user.created_at.isoformat()}, 200
     
     def put(self, user_id):
         user = authenticate_request()
@@ -98,7 +98,7 @@ class UserResource(Resource):
         user = User.query.get_or_404(user_id)
         db.session.delete(user)
         db.session.commit()
-        return {"message": "User deleted"}, 204
+        return {"message": "User deleted"}, 200
     
 class Notes(Resource):
     def get(self):
