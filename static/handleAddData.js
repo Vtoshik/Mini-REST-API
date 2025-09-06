@@ -11,11 +11,15 @@ async function handleAddData(event) {
    }
 
    const data = { username, email, password };
-
+   const token = localStorage.getItem('access_token');
+   
    try {
       const response = await fetch('/api/v1/register', {
          method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
+         headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` 
+         },
          body: JSON.stringify(data)
       });
 

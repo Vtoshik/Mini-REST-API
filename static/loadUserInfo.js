@@ -3,10 +3,15 @@ async function loadUserInfo() {
     const userId = pathParts[pathParts.length - 1];
     if (!userId) return;
 
+    const token = localStorage.getItem('access_token');
+    
     try {
         const response = await fetch(`/api/v1/users/${userId}`, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
         });
         if (response.ok) {
             const user = await response.json();

@@ -1,11 +1,12 @@
 # main.py
 # Libraries
-from flask import Flask, render_template, request, redirect
+from flask import Flask
 from flask_migrate import Migrate
 from urllib.parse import unquote
 from dotenv import load_dotenv
 import psycopg2
 import os
+from flask_jwt_extended import JWTManager
 
 # Files
 from database import db
@@ -40,11 +41,14 @@ if not database_url:
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Avoids warning
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY','dev_secret_key')
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'super-secret')
+app.config['JWT_TOKEN_LOCATION'] = ['headers']
 
 db.init_app(app)
 migrate = Migrate(app, db)
 app.register_blueprint(user_bp)
 app.register_blueprint(api_bp)
+jwt = JWTManager(app)
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,10 +1,15 @@
 from database import db
 from models.user import User
 from models.note import Note
-from flask import render_template, request, redirect, Blueprint, url_for, session, jsonify
+from flask import request, Blueprint, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from functools import wraps
 from flask_restful import Api, Resource, reqparse
+from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
+import logging
+
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 api_bp = Blueprint('api_bp', __name__)
 api = Api(api_bp)
@@ -20,13 +25,20 @@ note_parser.add_argument('content', type=str, required=False)
 note_parser.add_argument('user_id', type=int, required=True, help='User ID required')
 
 def authenticate_request():
-    user_id = session.get('user_id')
+    user_id = get_jwt_identity()
+    logger.debug(f"JWT Identity: {user_id}")
     if not user_id:
+        logger.warning("No JWT identity found")
         return None
-    return User.query.get(user_id)
+    user = User.query.get(user_id)
+    if not user:
+        logger.warning(f"User not found for ID: {user_id}")
+        return None
+    return user
 
 @api_bp.errorhandler(Exception)
 def handle_exception(e):
+    logger.error(f"Exception occurred: {str(e)}", exc_info=True)
     return {"message": "An unexpected error occurred", "error": str(e)}, 500
 
 class Login(Resource):
@@ -41,12 +53,14 @@ class Login(Resource):
                 return {"message": "Username and password are required"}, 400
             user = User.query.filter_by(username=username).first()
             if user and check_password_hash(user.password, password):
-                session['user_id'] = user.id
-                return {"message": "Login successful", "user_id": user.id}, 200
+                access_token = create_access_token(identity=str(user.id))
+                logger.debug(f"Login successful for user {username}, token created")
+                return {"message": "Login successful", 'access_token': access_token}, 200
             return {"message": "Invalid credentials"}, 401
         except Exception as e:
+            logger.error(f"Login error: {str(e)}", exc_info=True)
             return {"message": f"Server error: {str(e)}", "error": str(type(e))}, 500
-
+        
 class Register(Resource):
     def post(self):
         data = request.get_json()
@@ -54,7 +68,7 @@ class Register(Resource):
             (User.email == data['email']) | (User.username == data['username'])
         ).first()
         if existing_user:
-            return {"message": "User with this email or username already exists."},400
+            return {"message": "User with this email or username already exists."}, 400
 
         hashed_password = generate_password_hash(data['password'])
         user = User(username=data['username'], email=data['email'], password=hashed_password)
@@ -63,6 +77,7 @@ class Register(Resource):
         return {"message": "User created successfully", "user_id": user.id}, 201
 
 class Users(Resource):
+    @jwt_required()
     def get(self):
         user = authenticate_request()
         if not user:
@@ -71,6 +86,7 @@ class Users(Resource):
         return [{"id": u.id, "username": u.username, "email": u.email, "created_at": u.created_at.isoformat()} for u in users], 200
 
 class UserResource(Resource):
+    @jwt_required()
     def get(self, user_id):
         user = authenticate_request()
         if not user:
@@ -78,6 +94,7 @@ class UserResource(Resource):
         user = User.query.get_or_404(user_id)
         return {"id": user.id, "username": user.username, "email": user.email, "status": user.status, "created_at": user.created_at.isoformat()}, 200
     
+    @jwt_required()
     def put(self, user_id):
         user = authenticate_request()
         if not user:
@@ -91,6 +108,7 @@ class UserResource(Resource):
         db.session.commit()
         return {"message": "User updated"}, 200
 
+    @jwt_required()
     def delete(self, user_id):
         user = authenticate_request()
         if not user:
@@ -101,6 +119,7 @@ class UserResource(Resource):
         return {"message": "User deleted"}, 200
     
 class Notes(Resource):
+    @jwt_required()
     def get(self):
         user = authenticate_request()
         if not user:
@@ -108,6 +127,7 @@ class Notes(Resource):
         notes = Note.query.filter_by(user_id=user.id).all()
         return [{"id": n.id, "title": n.title, "content": n.content, "created_at": n.created_at.isoformat()} for n in notes], 200
 
+    @jwt_required()
     def post(self):
         user = authenticate_request()
         if not user:

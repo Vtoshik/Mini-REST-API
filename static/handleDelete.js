@@ -1,11 +1,16 @@
 async function handleDelete(event) {
     event.preventDefault();
+    
     const userId = event.target.closest('a').getAttribute('href').split('/').pop();
+    const token = localStorage.getItem('access_token');
 
     try {
         const response = await fetch(`/api/v1/users/${userId}`, {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
         });
 
         if (response.ok) {
