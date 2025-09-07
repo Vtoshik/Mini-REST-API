@@ -4,6 +4,7 @@
       <title>Index Page</title>
       <script src="{{ url_for('static', filename='loadUsers.js') }}"></script>
       <script src="{{ url_for('static', filename='handleDelete.js') }}"></script>
+      <script src="{{ url_for('static', filename='loadNotes.js') }}"></script>
    </head>
    <body>
       <h3>Profiles</h3>
@@ -29,6 +30,20 @@
       <br>
       <h3>Notes</h3>
       <a href="#"></a>
+      
+      <table>
+         <thead>
+            <tr>
+               <th>id</th>
+               <th>title</th>
+               <th>content</th>
+               <th>created_at</th>
+            </tr>
+         </thead>
+         <tbody class="notes-body">
+
+         </tbody>
+      </table>
 
       <br>
       <a href="/logout">Logout</a>
