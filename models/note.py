@@ -15,7 +15,7 @@ class Note(db.Model):
         self.user_id = user_id
 
     def __repr__(self):
-        return f"User(id={self.id}, username='{self.username}', email='{self.email}', created_at='{self.created_at}')"
+        return f"User(id={self.id}, title='{self.title}', content='{self.content}', created_at='{self.created_at}')"
     
     def json(self):
         return {
