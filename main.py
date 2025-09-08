@@ -13,7 +13,7 @@ from database import db
 from models.user import User
 from models.note import Note
 from api_routes import api_bp
-from user_routes import user_bp
+from user_routes import user_bp, admin_bp
 
 app = Flask(__name__)
 load_dotenv()
@@ -48,6 +48,7 @@ db.init_app(app)
 migrate = Migrate(app, db)
 app.register_blueprint(user_bp)
 app.register_blueprint(api_bp)
+app.register_blueprint(admin_bp)
 jwt = JWTManager(app)
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 from database import db
 from models.user import User
 from models.note import Note
-from flask import request, Blueprint, session
+from flask import request, Blueprint, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_restful import Api, Resource, reqparse
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
@@ -34,6 +34,12 @@ def authenticate_request():
     if not user:
         logger.warning(f"User not found for ID: {user_id}")
         return None
+    return user
+
+def authenticate_and_check_admin():
+    user = authenticate_request()
+    if not user or user.status != 'admin':
+        abort(403, "Admin access required")
     return user
 
 @api_bp.errorhandler(Exception)
@@ -79,7 +85,7 @@ class Register(Resource):
 class Users(Resource):
     @jwt_required()
     def get(self):
-        user = authenticate_request()
+        user = authenticate_and_check_admin()
         if not user:
             return {"message": "Authentication required"}, 401
         users = User.query.all()
@@ -88,7 +94,7 @@ class Users(Resource):
 class UserResource(Resource):
     @jwt_required()
     def get(self, user_id):
-        user = authenticate_request()
+        user = authenticate_and_check_admin()
         if not user:
             return {"message": "Authentication required"}, 401
         user = User.query.get_or_404(user_id)
@@ -96,7 +102,7 @@ class UserResource(Resource):
     
     @jwt_required()
     def put(self, user_id):
-        user = authenticate_request()
+        user = authenticate_and_check_admin()
         if not user:
             return {"message": "Authentication required"}, 401
         data = user_parser.parse_args()
@@ -110,7 +116,7 @@ class UserResource(Resource):
 
     @jwt_required()
     def delete(self, user_id):
-        user = authenticate_request()
+        user = authenticate_and_check_admin()
         if not user:
             return {"message": "Authentication required"}, 401
         user = User.query.get_or_404(user_id)
@@ -137,6 +143,24 @@ class Notes(Resource):
         db.session.add(new_note)
         db.session.commit()
         return {"message": "Note created", "note_id": new_note.id}, 201
+    
+    @jwt_required()
+    def delete(self, note_id):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        note = Note.query.get_or_404(note_id)
+        if note.user_id != user.id:
+            abort(403, description="Forbidden: You do not own this note")
+        try:
+            db.session.delete(note)
+            db.session.commit()
+            logger.info(f"Note {note_id} deleted by user {user.id}")
+            return {"message": "Note deleted"}, 204
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error deleting note {note_id}: {str(e)}", exc_info=True)
+            return {"message": "Failed to delete note", "error": str(e)}, 500
 
 # Resources
 api.add_resource(Login, '/api/v1/login')

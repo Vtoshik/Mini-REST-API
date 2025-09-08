@@ -3,6 +3,7 @@ from flask import render_template, redirect, Blueprint, url_for, session
 from functools import wraps
 
 user_bp = Blueprint('user_bp', __name__)
+admin_bp = Blueprint('admin_bp', __name__)
 
 
 @user_bp.route('/')
