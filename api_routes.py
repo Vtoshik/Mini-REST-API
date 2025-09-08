@@ -55,7 +55,7 @@ class Login(Resource):
             if user and check_password_hash(user.password, password):
                 access_token = create_access_token(identity=str(user.id))
                 logger.debug(f"Login successful for user {username}, token created")
-                return {"message": "Login successful", 'access_token': access_token}, 200
+                return {"message": "Login successful", 'access_token': access_token, 'user_id': user.id}, 200
             return {"message": "Invalid credentials"}, 401
         except Exception as e:
             logger.error(f"Login error: {str(e)}", exc_info=True)

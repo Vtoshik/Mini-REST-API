@@ -9,13 +9,13 @@ async function loadNotes() {
         const response = await fetch('/api/v1/notes', {
             method: 'GET',
             headers: {
-                'COtent-Type': 'application.json',
-                'Authorization': `Bearer $token`
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             }
         });
         if (response.ok){
             const notes = await response.json();
-            const tbody = document.querySelector('#notes-body');
+            const tbody = document.querySelector('.notes-body');
             tbody.innerHTML = '';
             notes.forEach(note => {
                 const row = document.createElement('tr');
@@ -32,13 +32,13 @@ async function loadNotes() {
             window.location.href = '/login';
         } else {
             const error = await response.text();
-            alert(`Error: ${error}`);
+            alert(`Error ${response.status}: ${error}`);
         }
-
-
     } catch (error){
-        console.error('Error loading users:', error);
-        alert('Failed to load users');
+        console.error('Error loading notes:', error);
+        alert('Failed to load notes');
     }
 
 }
+
+document.addEventListener('DOMContentLoaded', loadNotes);

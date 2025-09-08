@@ -30,8 +30,12 @@ def add_data():
     return render_template('add_data.html')
 
 @user_bp.route('/delete/<int:id>')
-def delete(id):
+def delete():
     return redirect(url_for('user_bp.index'))
+
+@user_bp.route('/add_note')
+def add_note():
+    return render_template('add_note.html')
 
 @user_bp.route('/logout')
 def logout():

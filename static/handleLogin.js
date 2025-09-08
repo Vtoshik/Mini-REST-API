@@ -35,7 +35,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             if (response.ok) {
                 const accessToken = result.access_token;
+                const userId = result.user_id;
                 localStorage.setItem('access_token', accessToken);
+                localStorage.setItem('user_id', userId);
                 window.location.href = '/';
             } else {
                 const errorDiv = document.getElementById('client-error');

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>Add Profile</title>
+      <script src="{{ url_for('static', filename='handleAddNote.js') }}"></script>
+   </head>
+   <body>
+      <h3>Note Form</h3>
+      <form onsubmit="handleAddNote(event)">
+         <label>Title</label>
+         <input type="text" name="title" placeholder="title...">
+         <label>Content</label>
+         <input type="text" name="content" placeholder="content...">
+         <button type="submit">Add</button>
+      </form>
+      <a href="/">Back to Index</a>
+   </body>
+</html>
