@@ -4,7 +4,6 @@ from flask import Flask
 from flask_migrate import Migrate
 from urllib.parse import unquote
 from dotenv import load_dotenv
-import psycopg2
 import os
 from flask_jwt_extended import JWTManager
 
@@ -13,7 +12,8 @@ from database import db
 from models.user import User
 from models.note import Note
 from api_routes import api_bp
-from user_routes import user_bp, admin_bp
+from user_routes import user_bp
+from admin_routes import admin_bp
 
 app = Flask(__name__)
 load_dotenv()
@@ -22,17 +22,6 @@ database_url = os.environ.get("DATABASE_URL")
 
 if database_url:
     database_url = unquote(database_url)
-
-# Test connection with psycopg2
-try:
-    conn = psycopg2.connect(database_url)
-    cursor = conn.cursor()
-    cursor.execute("SELECT current_database();")
-    db_name = cursor.fetchone()[0]
-    print(f"Connected to database: {db_name}")
-    conn.close()
-except Exception as e:
-    print("Error connection:", e)
 
 if not database_url:
     raise ValueError("DATABASE_URL environment variable is not set")
@@ -48,7 +37,7 @@ db.init_app(app)
 migrate = Migrate(app, db)
 app.register_blueprint(user_bp)
 app.register_blueprint(api_bp)
-app.register_blueprint(admin_bp)
+app.register_blueprint(admin_bp, url_prefix='/admin')
 jwt = JWTManager(app)
 
 if __name__ == "__main__":

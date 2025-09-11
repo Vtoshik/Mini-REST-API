@@ -21,7 +21,7 @@ async function loadUsers() {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${profile.username}</td>
-                    <td><a href="/user/${profile.id}">Info</a></td>
+                    <td><a href="/user/${profile.id}" class="info-user">Info</a></td>
                     <td><a href="/delete/${profile.id}" class="delete-user">Delete</a></td>
                 `;
                 tbody.appendChild(row);

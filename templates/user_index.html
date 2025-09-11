@@ -2,7 +2,8 @@
 <html>
    <head>
       <title>Index Page</title>
-      <script src="{{ url_for('static', filename='loadNotes.js') }}"></script>
+      <script src="{{ url_for('static', filename='loadNotes.js') }}" defer></script>
+      <script src="{{ url_for('static', filename='handleLogout.js') }}" defer></script>
    </head>
    <body>
       <h3>Notes</h3>

@@ -18,6 +18,7 @@ user_parser = reqparse.RequestParser()
 user_parser.add_argument('username', type=str, required=True, help='Username required')
 user_parser.add_argument('email', type=str, required=True, help='Email required')
 user_parser.add_argument('password', type=str, required=True, help='Password required')
+user_parser.add_argument('status', type=str, choices=['user', 'admin'], default='user')
 
 note_parser = reqparse.RequestParser()
 note_parser.add_argument('title', type=str, required=True, help='Title required')
@@ -61,12 +62,13 @@ class Login(Resource):
             if user and check_password_hash(user.password, password):
                 access_token = create_access_token(identity=str(user.id))
                 logger.debug(f"Login successful for user {username}, token created")
-                return {"message": "Login successful", 'access_token': access_token, 'user_id': user.id}, 200
+                print(f"Returning for login user_id: {user.id}, status: {user.status}")
+                return {"message": "Login successful", 'access_token': access_token, 'user_id': user.id, 'user_status': user.status}, 200
             return {"message": "Invalid credentials"}, 401
         except Exception as e:
             logger.error(f"Login error: {str(e)}", exc_info=True)
             return {"message": f"Server error: {str(e)}", "error": str(type(e))}, 500
-        
+           
 class Register(Resource):
     def post(self):
         data = request.get_json()
@@ -85,42 +87,56 @@ class Register(Resource):
 class Users(Resource):
     @jwt_required()
     def get(self):
-        user = authenticate_and_check_admin()
+        user = authenticate_request()
         if not user:
             return {"message": "Authentication required"}, 401
+        if user.status != 'admin':
+            return {"message": "Admin access required"}, 403
         users = User.query.all()
         return [{"id": u.id, "username": u.username, "email": u.email, "created_at": u.created_at.isoformat()} for u in users], 200
 
 class UserResource(Resource):
     @jwt_required()
     def get(self, user_id):
-        user = authenticate_and_check_admin()
+        user = authenticate_request()
         if not user:
             return {"message": "Authentication required"}, 401
+        if user.status != 'admin':
+            return {"message": "Forbidden"}, 403
         user = User.query.get_or_404(user_id)
-        return {"id": user.id, "username": user.username, "email": user.email, "status": user.status, "created_at": user.created_at.isoformat()}, 200
+        return {
+            "id": user.id, 
+            "username": user.username, 
+            "email": user.email, 
+            "status": user.status, 
+            "created_at": user.created_at.isoformat()
+            }, 200
     
     @jwt_required()
     def put(self, user_id):
-        user = authenticate_and_check_admin()
+        user = authenticate_request()
         if not user:
             return {"message": "Authentication required"}, 401
+        if user.status != 'admin' and user.id != user_id:
+            return {"message": "Forbidden"}, 403
         data = user_parser.parse_args()
-        user = User.query.get_or_404(user_id)
-        user.username = data['username']
-        user.email = data['email']
+        target_user = User.query.get_or_404(user_id)
+        target_user.username = data['username']
+        target_user.email = data['email']
         if 'password' in data:
-            user.password = generate_password_hash(data['password'])
+            target_user.password = generate_password_hash(data['password'])
         db.session.commit()
         return {"message": "User updated"}, 200
 
     @jwt_required()
     def delete(self, user_id):
-        user = authenticate_and_check_admin()
+        user = authenticate_request()
         if not user:
             return {"message": "Authentication required"}, 401
-        user = User.query.get_or_404(user_id)
-        db.session.delete(user)
+        if user.status != 'admin':
+            return {"message": "Admin access required"}, 403
+        target_user = User.query.get_or_404(user_id)
+        db.session.delete(target_user)
         db.session.commit()
         return {"message": "User deleted"}, 200
     
@@ -143,7 +159,7 @@ class Notes(Resource):
         db.session.add(new_note)
         db.session.commit()
         return {"message": "Note created", "note_id": new_note.id}, 201
-    
+
     @jwt_required()
     def delete(self, note_id):
         user = authenticate_request()
@@ -162,9 +178,51 @@ class Notes(Resource):
             logger.error(f"Error deleting note {note_id}: {str(e)}", exc_info=True)
             return {"message": "Failed to delete note", "error": str(e)}, 500
 
+class NoteResource(Resource):
+    @jwt_required()
+    def get(self, note_id):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        note = Note.query.get_or_404(note_id)
+        if note.user_id != user.id:
+            return {"message": "Forbidden"}, 403
+        return {"id": note.id, "title": note.title, "content": note.content, "created_at": note.created_at.isoformat()}, 200
+
+    @jwt_required()
+    def patch(self, note_id):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        note = Note.query.get_or_404(note_id)
+        if note.user_id != user.id:
+            return {"message": "Forbidden"}, 403
+        data = note_parser.parse_args()
+        if data['title'] is not None:
+            note.title = data['title']
+        if data['content'] is not None:
+            note.content = data['content']
+        db.session.commit()
+        return {"message": "Note updated"}, 200
+
+    @jwt_required()
+    def put(self, note_id):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        note = Note.query.get_or_404(note_id)
+        if note.user_id != user.id:
+            return {"message": "Forbidden"}, 403
+        data = note_parser.parse_args()
+        note.title = data['title']
+        note.content = data['content']
+        db.session.commit()
+        return {"message": "Note updated"}, 200
+
 # Resources
 api.add_resource(Login, '/api/v1/login')
 api.add_resource(Register, '/api/v1/register')
 api.add_resource(Users, '/api/v1/users')
 api.add_resource(UserResource, '/api/v1/users/<int:user_id>')
 api.add_resource(Notes, '/api/v1/notes')
+api.add_resource(NoteResource, '/api/v1/notes/<int:note_id>')

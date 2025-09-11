@@ -4,7 +4,6 @@ async function loadUserInfo() {
     if (!userId) return;
 
     const token = localStorage.getItem('access_token');
-    
     try {
         const response = await fetch(`/api/v1/users/${userId}`, {
             method: 'GET',

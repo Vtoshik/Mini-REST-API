@@ -22,29 +22,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(data)
             });
 
+            const errorDiv = document.getElementById('client-error');
+            const errorText = document.getElementById('client-error-text');
             if (!response.ok) {
                 const text = await response.text();
-                console.log('Response text:', text);
-                const errorDiv = document.getElementById('client-error');
-                const errorText = document.getElementById('client-error-text');
                 errorText.textContent = `Error ${response.status}: ${text || 'Unknown error'}`;
                 errorDiv.style.display = 'block';
                 return;
             }
 
             const result = await response.json();
-            if (response.ok) {
-                const accessToken = result.access_token;
-                const userId = result.user_id;
-                localStorage.setItem('access_token', accessToken);
-                localStorage.setItem('user_id', userId);
-                window.location.href = '/';
-            } else {
-                const errorDiv = document.getElementById('client-error');
-                const errorText = document.getElementById('client-error-text');
-                errorText.textContent = result.message || 'Login failed';
-                errorDiv.style.display = 'block';
-            }
+            const accessToken = result.access_token;
+            const userId = result.user_id;
+            const userStatus = result.user_status;
+            localStorage.setItem('access_token', accessToken);
+            localStorage.setItem('user_id', userId);
+            localStorage.setItem('user_status', userStatus);
+
+            const redirectUrl = userStatus === 'admin' ? '/admin/' : '/';
+            window.location.href = redirectUrl; // Просте перенаправлення, дані завантажаться через loadUsers
         } catch (error) {
             console.error('Fetch error:', error);
             const errorDiv = document.getElementById('client-error');

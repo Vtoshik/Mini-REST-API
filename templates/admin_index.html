@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html>
    <head>
-      <title>Index Page</title>
-      <script src="{{ url_for('static', filename='loadUsers.js') }}"></script>
-      <script src="{{ url_for('static', filename='handleDelete.js') }}"></script>
+      <title>Admin Index Page</title>
+      <script src="{{ url_for('static', filename='loadUsers.js') }}" defer></script>
+      <script src="{{ url_for('static', filename='handleDelete.js') }}" defer></script>
+      <script src="{{ url_for('static', filename='handleLogout.js') }}" defer></script>
+      <script src="{{ url_for('static', filename='loadUserInfo.js') }}" defer></script>
    </head>
    <body>
       <h3>Profiles</h3>
