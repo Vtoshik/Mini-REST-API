@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('user_status', userStatus);
 
             const redirectUrl = userStatus === 'admin' ? '/admin/' : '/';
-            window.location.href = redirectUrl; // Просте перенаправлення, дані завантажаться через loadUsers
+            window.location.href = redirectUrl;
         } catch (error) {
             console.error('Fetch error:', error);
             const errorDiv = document.getElementById('client-error');

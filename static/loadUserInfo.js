@@ -5,7 +5,7 @@ async function loadUserInfo() {
 
     const token = localStorage.getItem('access_token');
     try {
-        const response = await fetch(`/api/v1/users/${userId}`, {
+        const response = await fetch(`/api/v1/admin/users/${userId}`, {
             method: 'GET',
             headers: { 
                 'Content-Type': 'application/json',

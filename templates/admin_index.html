@@ -3,16 +3,15 @@
    <head>
       <title>Admin Index Page</title>
       <script src="{{ url_for('static', filename='loadUsers.js') }}" defer></script>
-      <script src="{{ url_for('static', filename='handleDelete.js') }}" defer></script>
       <script src="{{ url_for('static', filename='handleLogout.js') }}" defer></script>
-      <script src="{{ url_for('static', filename='loadUserInfo.js') }}" defer></script>
+      <script src="{{ url_for('static', filename='handleDelete.js') }}" defer></script>
    </head>
    <body>
       <h3>Profiles</h3>
-      <a href="/add_data">Create User</a>
+      <a href="/admin/add_data">Create User</a>
 
       <br>
-      <form action="/show_users" method="get">
+      <form action="/admin/show_users" method="get">
          <button type="submit">Show all Users</button>
       </form>
       <table>

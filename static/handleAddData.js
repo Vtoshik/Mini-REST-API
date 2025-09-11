@@ -24,7 +24,7 @@ async function handleAddData(event) {
       });
 
       if (response.ok) {
-         window.location.href = '/';
+         window.location.href = '/admin/';
       } else {
          const error = await response.text();
          alert(`Error: ${error}`);

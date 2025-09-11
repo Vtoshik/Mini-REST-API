@@ -5,7 +5,7 @@ async function handleDelete(event) {
     const token = localStorage.getItem('access_token');
 
     try {
-        const response = await fetch(`/api/v1/users/${userId}`, {
+        const response = await fetch(`/api/v1/admin/users/${userId}`, {
             method: 'DELETE',
             headers: { 
                 'Content-Type': 'application/json',

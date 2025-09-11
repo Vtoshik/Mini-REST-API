@@ -223,6 +223,6 @@ class NoteResource(Resource):
 api.add_resource(Login, '/api/v1/login')
 api.add_resource(Register, '/api/v1/register')
 api.add_resource(Users, '/api/v1/users')
-api.add_resource(UserResource, '/api/v1/users/<int:user_id>')
+api.add_resource(UserResource, '/api/v1/admin/users/<int:user_id>')
 api.add_resource(Notes, '/api/v1/notes')
 api.add_resource(NoteResource, '/api/v1/notes/<int:note_id>')
