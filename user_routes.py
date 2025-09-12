@@ -19,6 +19,10 @@ def login():
 def add_note():
     return render_template('add_note.html')
 
+@user_bp.route('/note/<int:note_id>')
+def note_info(note_id):
+    return render_template('note_info.html', note_id=note_id)
+
 @user_bp.route('/logout')
 def user_logout():
     return redirect(url_for('user_bp.login'))

@@ -22,11 +22,16 @@ async function loadNotes() {
                 row.innerHTML = `
                     <td>${note.id}</td>
                     <td>${note.title}</td>
-                    <td>${note.content}</td>
-                    <td>${note.created_at}</td>
+                    <td><a href="/note/${note.id}" class="info-note">
+                        Content</a></td>
+                    <td><a href="/note/delete/${note.id}" class="delete-note">
+                        Delete</a></td>
                 `;
                 tbody.appendChild(row);
             });
+            // document.querySelectorAll('.delete-note').forEach(link => {
+            //    link.addEventListener('click', handleDelete)
+            // });
         } else if (response.status === 401) {
             alert('Authentication failed. Please log in again.');
             window.location.href = '/login';
