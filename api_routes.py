@@ -206,18 +206,22 @@ class NoteResource(Resource):
         return {"message": "Note updated"}, 200
 
     @jwt_required()
-    def put(self, note_id):
+    def delete(self, note_id):
         user = authenticate_request()
         if not user:
             return {"message": "Authentication required"}, 401
         note = Note.query.get_or_404(note_id)
         if note.user_id != user.id:
             return {"message": "Forbidden"}, 403
-        data = note_parser.parse_args()
-        note.title = data['title']
-        note.content = data['content']
-        db.session.commit()
-        return {"message": "Note updated"}, 200
+        try:
+            db.session.delete(note)
+            db.session.commit()
+            logger.info(f"Note {note_id} deleted by user {user.id}")
+            return {"message": "Note deleted"}, 200
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error deleting note {note_id}: {str(e)}", exc_info=True)
+            return {"message": "Failed to delete note", "error": str(e)}, 500
 
 # Resources
 api.add_resource(Login, '/api/v1/login')

@@ -29,9 +29,9 @@ async function loadNotes() {
                 `;
                 tbody.appendChild(row);
             });
-            // document.querySelectorAll('.delete-note').forEach(link => {
-            //    link.addEventListener('click', handleDelete)
-            // });
+            document.querySelectorAll('.delete-note').forEach(link => {
+               link.addEventListener('click', handleDelete)
+            });
         } else if (response.status === 401) {
             alert('Authentication failed. Please log in again.');
             window.location.href = '/login';

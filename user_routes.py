@@ -23,6 +23,10 @@ def add_note():
 def note_info(note_id):
     return render_template('note_info.html', note_id=note_id)
 
+@user_bp.route('/delete/<int:id>')
+def delete_note():
+    return redirect(url_for('user_bp.user_index'))
+
 @user_bp.route('/logout')
 def user_logout():
     return redirect(url_for('user_bp.login'))
