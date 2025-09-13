@@ -29,31 +29,34 @@ async function loadObjects() {
             }
         });
         if (response.ok){
-            const object = await response.json();
+            const objects = await response.json();
             const tbody = document.querySelector('.list-body');
             tbody.innerHTML = '';
-            object.forEach(object => {
+            objects.forEach(obj => {
                 const row = document.createElement('tr');
                 if (status === 'user') {
                     row.innerHTML = `
-                        <td>${object.id}</td>
-                        <td>${object.title}</td>
-                        <td><a href="/note/${object.id}" class="info-note">
-                            Content</a></td>
-                        <td><a href="/note/delete/${object.id}" class="delete-object">
-                            Delete</a></td>
+                        <td>${obj.id}</td>
+                        <td>${obj.title}</td>
+                        <td>
+                            <button class="info-note" onclick="window.location.href='/note/${obj.id}'">Content</button>
+                        </td>
+                        <td>
+                            <button class="delete-object" onclick="handleDelete(${obj.id})">Delete</button>
+                        </td>
                     `;
                 } else if (status === 'admin') {
                     row.innerHTML = `
-                        <td>${object.username}</td>
-                        <td><a href="/admin/user/${object.id}" class="info-user">Info</a></td>
-                        <td><a href="/admin/delete/${object.id}" class="delete-object">Delete</a></td>
+                        <td>${obj.username}</td>
+                        <td>
+                            <button class="info-user" onclick="window.location.href='/admin/user/${obj.id}'">Info</button>
+                        </td>
+                        <td>
+                            <button class="delete-object" onclick="handleDelete(${obj.id})">Delete</button>
+                        </td>
                     `;
                 }
                 tbody.appendChild(row);
-            });
-            document.querySelectorAll('.delete-object').forEach(link => {
-               link.addEventListener('click', handleDelete)
             });
         } else if (response.status === 401) {
             alert('Authentication failed. Please log in again.');

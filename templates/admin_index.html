@@ -9,9 +9,6 @@
    </head>
    <body>
       <h3>Profiles</h3>
-      <a href="/admin/add_data">Create User</a>
-
-      <br>
       <form action="/admin/show_users" method="get">
          <button type="submit">Show all Users</button>
       </form>
@@ -27,8 +24,9 @@
 
          </tbody>
       </table>
-
       <br>
-      <a href="/logout">Logout</a>
+      <button type="button" onclick="window.location.href='/admin/add_data'">Create User</button>
+      <br>
+      <button type="button" onclick="window.location.href='/logout'">Logout</button>
    </body>
 </html>

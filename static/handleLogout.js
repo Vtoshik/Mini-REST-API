@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = '/login';
     }
 
-    const logoutLink = document.querySelector('a[href="/logout"]');
+    const logoutLink = document.querySelector('button[onclick="window.location.href=\'/logout\'"]');
     if (logoutLink) {
         logoutLink.addEventListener('click', function(event) {
             event.preventDefault();

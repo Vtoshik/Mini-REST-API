@@ -2,14 +2,13 @@
 <html>
    <head>
       <title>Index Page</title>
-      <script src="{{ url_for('static', filename='loadObjects.js') }}" defer></script>
-      <script src="{{ url_for('static', filename='handleLogout.js') }}" defer></script>
-      <script src="{{ url_for('static', filename='handleDelete.js') }}" defer></script>
+      <script src="{{ url_for('static', filename='loadObjects.js') }}"></script>
+      <script src="{{ url_for('static', filename='handleLogout.js') }}"></script>
+      <script src="{{ url_for('static', filename='handleDelete.js') }}"></script>
       <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
    </head>
    <body>
       <h3>Notes</h3>
-      <a href="/add_note">Create Note</a>
       
       <table>
          <thead>
@@ -24,8 +23,9 @@
 
          </tbody>
       </table>
-
       <br>
-      <a href="/logout">Logout</a>
+      <button type="button" onclick="window.location.href='/add_note'">Create Note</button>
+      <br>
+      <button type="button" onclick="window.location.href='/logout'">Logout</button>
    </body>
 </html>

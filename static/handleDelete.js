@@ -1,7 +1,5 @@
-async function handleDelete(event) {
-    event.preventDefault();
-    
-    const pageId = event.target.closest('a').getAttribute('href').split('/').pop();
+async function handleDelete(pageId) {
+
     const token = localStorage.getItem('access_token');
     const status = localStorage.getItem('user_status');
 

@@ -194,7 +194,7 @@ button#register-btn:hover {
     margin-bottom: 10px;
 }
 
-button[type="submit"], .register-btn, .back-login-btn {
+button[type="submit"], button[type="button"], .register-btn, .back-login-btn {
     width: 100%;
     padding: 12px;
     font-size: 16px;
@@ -206,14 +206,28 @@ button[type="submit"], .register-btn, .back-login-btn {
     transition: background 0.19s, transform 0.21s;
 }
 
-button[type="submit"], button#login-btn, button#register-btn {
+button[type="submit"], button[type="button"], button#login-btn, button#register-btn {
     background: linear-gradient(135deg, #2ecc71, #27ae60);
     color:white;
 }
 
-button[type="submit"]:hover, button#login-btn:hover, button#register-btn:hover {
+button[type="submit"]:hover, button[type="button"]:hover, button#login-btn:hover, button#register-btn:hover {
     background: linear-gradient(135deg,#27ae60, #1abc9c);
     transform: translateY(-1px);
+}
+
+.info-note, .delete-object, .info-user {
+    display: inline-block;
+    background: #dc3545;
+    color: white;
+    padding: 8px 12px;
+    text-decoration: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.info-note:hover, .delete-object:hover, .info-user:hover {
+    background: #c82333;
 }
 
 button.register-btn {

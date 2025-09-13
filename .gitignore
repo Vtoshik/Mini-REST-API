@@ -15,3 +15,4 @@ wheels/
 
 # Other files
 flask_commands.txt
+.pytest_cache/
