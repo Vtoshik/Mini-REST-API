@@ -28,11 +28,7 @@ async function handleDelete(event) {
 
         if (response.ok) {
             alert(`${alertText} deleted successfully`);
-            if (status === 'admin'){
-                loadUsers();
-            } else {
-                loadNotes();
-            }
+            loadObjects();
         } else {
             const error = await response.text();
             alert(`Error: ${error}`);

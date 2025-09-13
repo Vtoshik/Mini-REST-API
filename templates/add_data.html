@@ -2,12 +2,12 @@
 <html>
    <head>
       <title>Add Profile</title>
-      <script src="{{ url_for('static', filename='handleAddData.js') }}"></script>
+      <script src="{{ url_for('static', filename='addData.js') }}"></script>
       <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
    </head>
    <body>
       <h3>Profile Form</h3>
-      <form onsubmit="handleAddData(event)">
+      <form onsubmit="addData(event)">
          <label>Username</label>
          <input type="text" name="username" placeholder="username...">
          <label>Email</label>
