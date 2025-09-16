@@ -17,13 +17,12 @@ api = Api(api_bp)
 user_parser = reqparse.RequestParser()
 user_parser.add_argument('username', type=str, required=True, help='Username required')
 user_parser.add_argument('email', type=str, required=True, help='Email required')
-user_parser.add_argument('password', type=str, required=True, help='Password required')
+user_parser.add_argument('password', type=str, required=False, help='Password required')
 user_parser.add_argument('status', type=str, choices=['user', 'admin'], default='user')
 
 note_parser = reqparse.RequestParser()
 note_parser.add_argument('title', type=str, required=True, help='Title required')
 note_parser.add_argument('content', type=str, required=False)
-note_parser.add_argument('user_id', type=int, required=True, help='User ID required')
 
 def authenticate_request():
     user_id = get_jwt_identity()
@@ -121,9 +120,22 @@ class UserResource(Resource):
             return {"message": "Forbidden"}, 403
         data = user_parser.parse_args()
         target_user = User.query.get_or_404(user_id)
+        # Clean and validate input
+        username = data['username'].strip()
+        email = data['email'].strip()
+        status = data['status'].strip()
+
+        # Validate username length
+        if len(username) > 20:
+            return {"message": "Username must be 20 characters or less"}, 400
+        if len(email) > 1000:
+            return {"message": "Email must be 1000 characters or less"}, 400
+        if status not in ['user', 'admin']:
+            return {"message": "Invalid status value"}, 400
         target_user.username = data['username']
         target_user.email = data['email']
-        if 'password' in data:
+        target_user.status = data['status']
+        if data['password']:
             target_user.password = generate_password_hash(data['password'])
         db.session.commit()
         return {"message": "User updated"}, 200

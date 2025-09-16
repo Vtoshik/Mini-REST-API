@@ -30,22 +30,34 @@ async function loadInfo() {
             const object = await response.json();
             if (status==='admin'){
                 document.getElementById('user-info').innerHTML = `
-                    <li>Id: ${object.id}</li>
-                    <li>Username: ${object.username}</li>
-                    <li>Email: ${object.email}</li>
-                    <li>Status: ${object.status || 'N/A'}</li>
+                    <li>Id: <span>${object.id}</span></li>
+                    <li>Username: 
+                        <span contenteditable="true" data-field="username">
+                        ${object.username}</span></li>
+                    <li>Email: 
+                        <span contenteditable="true" data-field="email">
+                        ${object.email}</span></li>
+                    <li>Status: 
+                        <span contenteditable="true" data-field="status">
+                        ${object.status || 'N/A'}</span></li>
                     <li>Created At: ${object.created_at}</li>
+                    <button class="delete-object" onclick="handleUpdate(${object.id})">Update</button>
                 `;
             } else if (status ==='user'){
                 document.getElementById('note-info').innerHTML = `
                     <li>Id: ${object.id}</li>
-                    <li>Title: ${object.title}</li>
-                    <li>Content: ${object.content}</li>
+                    <li>Title: 
+                        <span contenteditable="true" data-field="title">
+                        ${object.title}</span></li>
+                    <li>Content: 
+                        <span contenteditable="true" data-field="content">
+                        ${object.content}</span></li>
                     <li>Created at: ${object.created_at}</li>
+                    <button class="delete-object" onclick="handleUpdate(${object.id})">Update</button>
                 `
             }
         } else {
-            const error = await response.text();
+            const error = await response.json();
             alert(`Error: ${error}`);
         }
     } catch (error) {
