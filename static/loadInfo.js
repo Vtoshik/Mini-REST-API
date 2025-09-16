@@ -19,7 +19,7 @@ async function loadInfo() {
         if (response.ok) {
             const object = await response.json();
             if (status==='admin'){
-                document.getElementById('user-info').innerHTML = `
+                document.getElementById('info-fields').innerHTML = `
                     <li>Id: <span>${object.id}</span></li>
                     <li>Username: 
                         <span contenteditable="true" data-field="username">
@@ -31,10 +31,13 @@ async function loadInfo() {
                         <span contenteditable="true" data-field="status">
                         ${object.status || 'N/A'}</span></li>
                     <li>Created At: ${object.created_at}</li>
-                    <button class="delete-object" onclick="handleUpdate(${object.id})">Update</button>
+                `;
+                document.getElementById('button-group').innerHTML = `
+                    <button class="update-btn" onclick="handleUpdate(${object.id})">Update</button>
+                    <button type="button" onclick="window.location.href='/admin/'">Back to Index</button>
                 `;
             } else if (status ==='user'){
-                document.getElementById('note-info').innerHTML = `
+                document.getElementById('info-fields').innerHTML = `
                     <li>Id: ${object.id}</li>
                     <li>Title: 
                         <span contenteditable="true" data-field="title">
@@ -43,8 +46,11 @@ async function loadInfo() {
                         <span contenteditable="true" data-field="content">
                         ${object.content}</span></li>
                     <li>Created at: ${object.created_at}</li>
-                    <button class="delete-object" onclick="handleUpdate(${object.id})">Update</button>
-                `
+                `;
+                document.getElementById('button-group').innerHTML = `
+                    <button class="update-btn" onclick="handleUpdate(${object.id})">Update</button>
+                    <button type="button" onclick="window.location.href='/'">Back to Index</button>
+                `;
             }
         } else {
             const error = await response.json();

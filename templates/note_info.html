@@ -8,10 +8,18 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     </head>
     <body>
-        <h3>Note Info</h3>
-        <ul id="note-info">
-
-        </ul>
-        <button type="button" onclick="window.location.href='/'">Back to Index</button>
+        <div class="container">
+            <div class="info-card">
+                <div class="info-icon">
+                    <svg width="48" height="48" viewBox="0 0 20 20">
+                        <circle cx="10" cy="10" r="10" fill="#2ecc71"/>
+                    </svg>
+                </div>
+                <h3 class="info-title">{% block heading %}Info{% endblock %}</h3>
+                <ul id="info-fields" class="info-list"></ul>
+                <div class="button-group" id="button-group">
+                </div>
+            </div>
+        </div>
     </body>
 </html>

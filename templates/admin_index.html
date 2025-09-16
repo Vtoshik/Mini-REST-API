@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
    <head>
-      <title>Admin Index Page</title>
+      <title>{% block title %}Dashboard{% endblock %}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
       <script src="{{ url_for('static', filename='loadObjects.js') }}"></script>
       <script src="{{ url_for('static', filename='handleLogout.js') }}"></script>
       <script src="{{ url_for('static', filename='handleDelete.js') }}"></script>
@@ -9,25 +10,37 @@
       <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
    </head>
    <body>
-      <h3>Profiles</h3>
-      <form action="/admin/show_users" method="get">
-         <button type="submit">Show all Users</button>
-      </form>
-      <table>
-         <thead>
-            <tr>
-               <th>Username</th>
-               <th>#</th>
-               <th>##</th>
-            </tr>
-         </thead>
-         <tbody class="list-body">
+      <div class="container">
+         <div class="dashboard-card">
+               <div class="dashboard-icon">
+                  <svg width="48" height="48" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="#2ecc71"/></svg>
+               </div>
+               <h3 class="dashboard-title">{% block heading %}Dashboard{% endblock %}</h3>
+               
+               {% block dashboard_buttons %}
+               <!--<form action="/admin/show_users" method="get">
+                  <button type="submit">Show all Users</button>
+               </form>-->
+               {% endblock %}
+               
+               <table class="dashboard-table">
+                  <thead>
+                     <tr>
+                           {% block table_headings %}
+                           <th>Username</th><th>#</th><th>##</th>
+                           {% endblock %}
+                     </tr>
+                  </thead>
+                  <tbody class="list-body"></tbody>
+               </table>
 
-         </tbody>
-      </table>
-      <br>
-      <button type="button" onclick="window.location.href='/admin/add_data'">Create User</button>
-      <br>
-      <button type="button" onclick="window.location.href='/logout'">Logout</button>
+               <div class="button-group">
+                  {% block actions %}
+                  <button type="button" onclick="window.location.href='/admin/add_data'">Create User</button>
+                  <button type="button" onclick="window.location.href='/logout'">Logout</button>
+                  {% endblock %}
+               </div>
+         </div>
+      </div>
    </body>
 </html>
