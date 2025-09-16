@@ -1,18 +1,7 @@
 async function loadObjects() {
     const token = localStorage.getItem('access_token');
     const status = localStorage.getItem('user_status');
-
-    let route = '';
-    let alertText = 'Note';
-
-    if (status === 'admin'){
-        route = '/admin/users';
-        alertText = 'User';
-    } else if (status === 'user') {
-        route = '/notes';
-    } else {
-        alert(`Not existing route ${route}`);
-    }
+    const { route, alertText } = checkRoute();
 
     if (!token) {
         alert('No access token found. PLease log in');

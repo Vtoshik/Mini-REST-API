@@ -5,18 +5,8 @@ async function loadInfo() {
 
     const token = localStorage.getItem('access_token');
     const status = localStorage.getItem('user_status');
+    const { route, alertText } = checkRoute();
 
-    let route = '';
-    let alertText = 'Note';
-
-    if (status === 'admin'){
-        route = '/admin/users';
-        alertText = 'User';
-    } else if (status === 'user') {
-        route = '/notes';
-    } else {
-        alert(`Not existing route ${route}`);
-    }
 
     try {
         const response = await fetch(`/api/v1${route}/${pageId}`, {
