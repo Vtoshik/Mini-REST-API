@@ -89,3 +89,39 @@ function checkRoute(func_type=NaN){
         alertText: alertText
     };
 }
+
+async function apiRequest(method, route, alertText){
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        alert('No access token found. PLease log in');
+        window.location.href = '/login';
+        throw new Error('No access token found');
+    }
+
+    try {
+        const response = await fetch(`${route}`, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (response.ok){
+            const objects = await response.json();
+            return { objects };
+        } else if (response.status === 401) {
+            alert('Authentication failed. Please log in again.');
+            window.location.href = '/login';
+            throw new Error('Authentication failed');
+        } else {
+            const error = await response.json();
+            alert(`Error ${response.status}: ${error.message || JSON.stringify(error)}`);
+            throw new Error(`Server error: ${error.message || JSON.stringify(error)}`);
+        }
+    } catch (error) {
+        console.error('API request error', error);
+        alert(`Failed to load ${alertText}`);
+        throw error;
+    }
+
+}
