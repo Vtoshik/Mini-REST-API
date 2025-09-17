@@ -90,26 +90,37 @@ function checkRoute(func_type=NaN){
     };
 }
 
-async function apiRequest(method, route, alertText){
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-        alert('No access token found. PLease log in');
-        window.location.href = '/login';
-        throw new Error('No access token found');
+async function apiRequest(method, route, alertText, body = null, authRequired = true){
+    const options = {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    };
+    
+    if (authRequired) {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            alert('No access token found. PLease log in');
+            window.location.href = '/login';
+            throw new Error('No access token found');
+        }
+        options.headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    if (body) {
+        options.body = JSON.stringify(body);
     }
 
     try {
-        const response = await fetch(`${route}`, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            }
-        });
+        const response = await fetch(`${route}`, options);
         if (response.ok){
-            const objects = await response.json();
-            return { objects };
-        } else if (response.status === 401) {
+            if (response.status === 204) {
+                return { data: null };
+            }
+            const data = await response.json();
+            return { objects: data };
+        } else if (response.status === 401 && authRequired) {
             alert('Authentication failed. Please log in again.');
             window.location.href = '/login';
             throw new Error('Authentication failed');
