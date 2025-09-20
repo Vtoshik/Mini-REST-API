@@ -121,7 +121,6 @@ async function apiRequest(method, route, alertText, body = null, authRequired = 
 
     if (body) {
         options.body = JSON.stringify(body);
-        console.log("data added");
     }
 
     try {

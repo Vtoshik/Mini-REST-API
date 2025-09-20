@@ -4,7 +4,7 @@ from models.user import User
 from models.note import Note
 from flask import request, Blueprint, abort
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_restful import Api, Resource, reqparse
+from flask_restful import Api, Resource
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 from sqlalchemy.exc import IntegrityError
 from schemas import UserRegisterSchema, NoteSchema, UserSchema, UserUpdateSchema, LoginSchema, NoteCreateSchema, NoteUpdateSchema
@@ -16,10 +16,6 @@ logger = logging.getLogger(__name__)
 
 api_bp = Blueprint('api_bp', __name__)
 api = Api(api_bp)
-
-note_parser = reqparse.RequestParser()
-note_parser.add_argument('title', type=str, required=True, help='Title required')
-note_parser.add_argument('content', type=str, required=False)
 
 def authenticate_request():
     user_id = get_jwt_identity()
@@ -161,7 +157,7 @@ class UserResource(Resource):
             return {"message": "User deleted"}, 200
         except IntegrityError:
             db.session.rollback()
-            return {"message": "User with this with this id does not exist"}, 400
+            return {"message": "Cannot delete user due to database constraints"}, 400
         except Exception as e:
             db.session.rollback()
             return {"message": "Server error"}, 500
@@ -181,22 +177,23 @@ class Notes(Resource):
         user = authenticate_request()
         if not user:
             return {"message": "Authentication required"}, 401
+        logger.debug(f"Received payload: {request.get_json()}")
         schema = NoteCreateSchema()
         try:
             data = schema.load(request.get_json())
         except ValidationError as error:
-            return {"errors": error.messages}, 400
+            return {"message": "Validation error", "errors": error.messages}, 400
         new_note = Note(**data, user_id=user.id)
         try: 
             db.session.add(new_note)
             db.session.commit()
-            return {"message": "Note created", "note_id": new_note.id}, 201
+            return {"message": "Note created", "data": {"note_id": new_note.id}}, 201
         except IntegrityError:
             db.session.rollback()
-            return {"message": "Note with title already exists"}, 400
+            return {"message": "Note with this title already exists for this user"}, 400
         except Exception as e:
             db.session.rollback()
-            return {"message": "Server error"}, 500
+            return {"message": "Server error", "error": str(e)}, 500
 
 class NoteResource(Resource):
     @jwt_required()
@@ -238,7 +235,7 @@ class NoteResource(Resource):
             return {"message": "Note updated", "data": schema.dump(note)}, 200
         except IntegrityError:
             db.session.rollback()
-            return {"message": "Note with this title already exist"}, 400
+            return {"message": "Note with this title already exists for this user"}, 400
         except Exception as e:
             db.session.rollback()
             logger.error(f"Error updating note {note_id}: {str(e)}", exc_info=True)

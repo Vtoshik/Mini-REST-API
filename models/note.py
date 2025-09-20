@@ -9,7 +9,7 @@ class Note(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     title = db.Column(db.String(20), nullable = False)
     content = db.Column(Text, unique = False, nullable = True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable = False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable = False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def __init__(self, title, content, user_id):

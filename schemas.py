@@ -1,4 +1,4 @@
-from marshmallow import Schema, fields, validate, ValidationError
+from marshmallow import Schema, fields, validate, ValidationError, post_load, EXCLUDE
 from marshmallow.validate import Length, Email, Regexp
 
 class UserRegisterSchema(Schema):
@@ -39,10 +39,44 @@ class NoteSchema(Schema):
     content = fields.Str()
     created_at = fields.DateTime(dump_only=True)
 
+
 class NoteCreateSchema(Schema):
-    title = fields.Str(required=True, validate=Length(max=20, error="Title max 20 chars"))
+    title = fields.Str(
+        required=True,
+        validate=[
+            Length(max=20, error="Title max 20 chars"),
+            Regexp(r'^\S.*\S$', error="Title cannot be empty or whitespace-only")
+        ]
+    )
     content = fields.Str(required=False, allow_none=True)
 
+    @post_load
+    def strip_whitespace(self, data, **kwargs):
+        if data.get('title'):
+            data['title'] = data['title'].strip()
+        if data.get('content'):
+            data['content'] = data['content'].strip()
+        return data
+    
+    class Meta:
+        unknown = EXCLUDE # Ignore unknown fields like user_id
+
 class NoteUpdateSchema(Schema):
-    title = fields.Str(validate=Length(max=20, error="Title max 20 chars"))
+    title = fields.Str(
+        validate=[
+            Length(max=20, error="Title max 20 chars"),
+            Regexp(r'^\S.*\S$', error="Title cannot be empty or whitespace-only")
+        ]
+    )
     content = fields.Str(allow_none=True)
+
+    @post_load
+    def strip_whitespace(self, data, **kwargs):
+        if data.get('title'):
+            data['title'] = data['title'].strip()
+        if data.get('content'):
+            data['content'] = data['content'].strip()
+        return data
+
+    class Meta:
+        unknown = EXCLUDE
