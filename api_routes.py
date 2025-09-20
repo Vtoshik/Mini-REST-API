@@ -1,3 +1,4 @@
+# api_routes.py
 from database import db
 from models.user import User
 from models.note import Note
@@ -5,20 +6,16 @@ from flask import request, Blueprint, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_restful import Api, Resource, reqparse
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
+from sqlalchemy.exc import IntegrityError
+from schemas import UserRegisterSchema, NoteSchema, UserSchema, UserUpdateSchema, LoginSchema, NoteCreateSchema, NoteUpdateSchema
+from marshmallow import ValidationError
 import logging
-
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 api_bp = Blueprint('api_bp', __name__)
 api = Api(api_bp)
-
-user_parser = reqparse.RequestParser()
-user_parser.add_argument('username', type=str, required=True, help='Username required')
-user_parser.add_argument('email', type=str, required=True, help='Email required')
-user_parser.add_argument('password', type=str, required=False, help='Password required')
-user_parser.add_argument('status', type=str, choices=['user', 'admin'], default='user')
 
 note_parser = reqparse.RequestParser()
 note_parser.add_argument('title', type=str, required=True, help='Title required')
@@ -49,28 +46,26 @@ def handle_exception(e):
 
 class Login(Resource):
     def post(self):
+        schema = LoginSchema()
         try:
-            data = request.get_json()
-            if not data:
-                return {"message": "No data provided"}, 400
-            username = data.get('username')
-            password = data.get('password')
-            if not username or not password:
-                return {"message": "Username and password are required"}, 400
-            user = User.query.filter_by(username=username).first()
-            if user and check_password_hash(user.password, password):
-                access_token = create_access_token(identity=str(user.id))
-                logger.debug(f"Login successful for user {username}, token created")
-                print(f"Returning for login user_id: {user.id}, status: {user.status}")
-                return {"message": "Login successful", 'access_token': access_token, 'user_id': user.id, 'user_status': user.status}, 200
-            return {"message": "Invalid credentials"}, 401
-        except Exception as e:
-            logger.error(f"Login error: {str(e)}", exc_info=True)
-            return {"message": f"Server error: {str(e)}", "error": str(type(e))}, 500
+            data = schema.load(request.get_json())
+        except ValidationError as error:
+            return {"error": "validation_error", "message": error.messages, "code": 400}, 400
+        user = User.query.filter_by(username=data['username']).first()
+        if user and check_password_hash(user.password, data['password']):
+            access_token = create_access_token(identity=str(user.id))
+            logger.debug(f"Login successful for user {data['username']}, token created")
+            return {"message": "Login successful", 'access_token': access_token, 'user_id': user.id, 'user_status': user.status}, 200
+        return {"message": "Invalid credentials"}, 401
+
            
 class Register(Resource):
     def post(self):
-        data = request.get_json()
+        schema = UserRegisterSchema()
+        try:
+            data = schema.load(request.get_json())
+        except ValidationError as error:
+            return {"errors": error.messages}, 400
         existing_user = User.query.filter(
             (User.email == data['email']) | (User.username == data['username'])
         ).first()
@@ -79,9 +74,17 @@ class Register(Resource):
 
         hashed_password = generate_password_hash(data['password'])
         user = User(username=data['username'], email=data['email'], password=hashed_password)
-        db.session.add(user)
-        db.session.commit()
-        return {"message": "User created successfully", "user_id": user.id}, 201
+        try:
+            db.session.add(user)
+            db.session.commit()
+            return {"message": "User created successfully", "user_id": user.id}, 201
+        except IntegrityError:
+            db.session.rollback()
+            return {"message": "User with this email or username already exists."}, 400
+        except Exception as e:
+            db.session.rollback()
+            return {"message": "Server error"}, 500
+
 
 class Users(Resource):
     @jwt_required()
@@ -92,7 +95,8 @@ class Users(Resource):
         if user.status != 'admin':
             return {"message": "Admin access required"}, 403
         users = User.query.all()
-        return [{"id": u.id, "username": u.username, "email": u.email, "created_at": u.created_at.isoformat()} for u in users], 200
+        users_schema = UserSchema(many=True)
+        return users_schema.dump(users), 200
 
 class UserResource(Resource):
     @jwt_required()
@@ -118,27 +122,30 @@ class UserResource(Resource):
             return {"message": "Authentication required"}, 401
         if user.status != 'admin' and user.id != user_id:
             return {"message": "Forbidden"}, 403
-        data = user_parser.parse_args()
+        schema = UserUpdateSchema(partial=True)
+        try:
+            data = schema.load(request.get_json())
+        except ValidationError as error:
+            return {"errors": error.messages}, 400
         target_user = User.query.get_or_404(user_id)
-        # Clean and validate input
-        username = data['username'].strip()
-        email = data['email'].strip()
-        status = data['status'].strip()
-
-        # Validate username length
-        if len(username) > 20:
-            return {"message": "Username must be 20 characters or less"}, 400
-        if len(email) > 1000:
-            return {"message": "Email must be 1000 characters or less"}, 400
-        if status not in ['user', 'admin']:
-            return {"message": "Invalid status value"}, 400
-        target_user.username = data['username']
-        target_user.email = data['email']
-        target_user.status = data['status']
-        if data['password']:
+        # Update fields from validated data
+        if 'username' in data:
+            target_user.username = data['username']
+        if 'email' in data:
+            target_user.email = data['email']
+        if 'status' in data:
+            target_user.status = data['status']
+        if 'password' in data and data['password']:  # Only update if provided
             target_user.password = generate_password_hash(data['password'])
-        db.session.commit()
-        return {"message": "User updated"}, 200
+        try:
+            db.session.commit()
+            return {"message": "User updated"}, 200
+        except IntegrityError:
+            db.session.rollback()
+            return {"message": "User with this email or username already exists."}, 400
+        except Exception as e:
+            db.session.rollback()
+            return {"message": "Server error", "error": str(e)}, 500
 
     @jwt_required()
     def delete(self, user_id):
@@ -148,9 +155,16 @@ class UserResource(Resource):
         if user.status != 'admin':
             return {"message": "Admin access required"}, 403
         target_user = User.query.get_or_404(user_id)
-        db.session.delete(target_user)
-        db.session.commit()
-        return {"message": "User deleted"}, 200
+        try:
+            db.session.delete(target_user)
+            db.session.commit()
+            return {"message": "User deleted"}, 200
+        except IntegrityError:
+            db.session.rollback()
+            return {"message": "User with this with this id does not exist"}, 400
+        except Exception as e:
+            db.session.rollback()
+            return {"message": "Server error"}, 500
     
 class Notes(Resource):
     @jwt_required()
@@ -159,36 +173,30 @@ class Notes(Resource):
         if not user:
             return {"message": "Authentication required"}, 401
         notes = Note.query.filter_by(user_id=user.id).all()
-        return [{"id": n.id, "title": n.title, "content": n.content, "created_at": n.created_at.isoformat()} for n in notes], 200
+        schema = NoteSchema(many=True)
+        return schema.dump(notes), 200
 
     @jwt_required()
     def post(self):
         user = authenticate_request()
         if not user:
             return {"message": "Authentication required"}, 401
-        data = note_parser.parse_args()
-        new_note = Note(title=data['title'], content=data['content'], user_id=user.id)
-        db.session.add(new_note)
-        db.session.commit()
-        return {"message": "Note created", "note_id": new_note.id}, 201
-
-    @jwt_required()
-    def delete(self, note_id):
-        user = authenticate_request()
-        if not user:
-            return {"message": "Authentication required"}, 401
-        note = Note.query.get_or_404(note_id)
-        if note.user_id != user.id:
-            abort(403, description="Forbidden: You do not own this note")
+        schema = NoteCreateSchema()
         try:
-            db.session.delete(note)
+            data = schema.load(request.get_json())
+        except ValidationError as error:
+            return {"errors": error.messages}, 400
+        new_note = Note(**data, user_id=user.id)
+        try: 
+            db.session.add(new_note)
             db.session.commit()
-            logger.info(f"Note {note_id} deleted by user {user.id}")
-            return {"message": "Note deleted"}, 204
+            return {"message": "Note created", "note_id": new_note.id}, 201
+        except IntegrityError:
+            db.session.rollback()
+            return {"message": "Note with title already exists"}, 400
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Error deleting note {note_id}: {str(e)}", exc_info=True)
-            return {"message": "Failed to delete note", "error": str(e)}, 500
+            return {"message": "Server error"}, 500
 
 class NoteResource(Resource):
     @jwt_required()
@@ -199,23 +207,42 @@ class NoteResource(Resource):
         note = Note.query.get_or_404(note_id)
         if note.user_id != user.id:
             return {"message": "Forbidden"}, 403
-        return {"id": note.id, "title": note.title, "content": note.content, "created_at": note.created_at.isoformat()}, 200
+        schema = NoteSchema(); 
+        return schema.dump(note), 200
 
     @jwt_required()
     def patch(self, note_id):
         user = authenticate_request()
         if not user:
             return {"message": "Authentication required"}, 401
+        
         note = Note.query.get_or_404(note_id)
         if note.user_id != user.id:
             return {"message": "Forbidden"}, 403
-        data = note_parser.parse_args()
-        if data['title'] is not None:
+
+        schema = NoteUpdateSchema(partial=True)
+        try:
+            data = schema.load(request.get_json())
+        except ValidationError as error:
+            return {"errors": error.messages}, 400
+            
+        # Update fields from validated data
+        if 'title' in data:
             note.title = data['title']
-        if data['content'] is not None:
+        if 'content' in data:
             note.content = data['content']
-        db.session.commit()
-        return {"message": "Note updated"}, 200
+
+        try:
+            db.session.commit()
+            schema = NoteSchema()
+            return {"message": "Note updated", "data": schema.dump(note)}, 200
+        except IntegrityError:
+            db.session.rollback()
+            return {"message": "Note with this title already exist"}, 400
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error updating note {note_id}: {str(e)}", exc_info=True)
+            return {"message": "Server error", "error": str(e)}, 500
 
     @jwt_required()
     def delete(self, note_id):
@@ -229,7 +256,10 @@ class NoteResource(Resource):
             db.session.delete(note)
             db.session.commit()
             logger.info(f"Note {note_id} deleted by user {user.id}")
-            return {"message": "Note deleted"}, 200
+            return {"message": "Note deleted"}, 204
+        except IntegrityError:
+            db.session.rollback()
+            return {"message": "Note with this id does not exist"}, 400
         except Exception as e:
             db.session.rollback()
             logger.error(f"Error deleting note {note_id}: {str(e)}", exc_info=True)

@@ -55,6 +55,14 @@ function checkRoute(func_type=NaN){
             alert('All fields are required');
             return;
         }
+        if (username.length < 3 || username.length > 20) {
+            alert('Username must be 3-20 characters');
+            return;
+        }
+        if (password.length < 8) {
+            alert('Password must be at least 8 characters');
+            return;
+        }
 
         data = { username, email, password };
         } else if (status === 'user') {
@@ -66,14 +74,17 @@ function checkRoute(func_type=NaN){
                 alert('Title field required');
                 return;
             }
-
+            if (title.length > 20) {
+                alert('Title must be 20 characters or less');
+                return;
+            }
             if (!userId) {
                 alert('User ID not found. Please log in.');
                 window.location.href = '/login';
                 return;
             }
 
-            data = { title, content, user_id: parseInt(userId)};
+            data = { title, content};
         } 
 
         return {
@@ -110,6 +121,7 @@ async function apiRequest(method, route, alertText, body = null, authRequired = 
 
     if (body) {
         options.body = JSON.stringify(body);
+        console.log("data added");
     }
 
     try {
