@@ -22,7 +22,7 @@
                   <button type="submit">Show all Users</button>
                </form>-->
                {% endblock %}
-               
+               <input type="hidden" id="csrf_token" name="csrf_token" value="{{ csrf_token() }}">
                <table class="dashboard-table">
                   <thead>
                      <tr>

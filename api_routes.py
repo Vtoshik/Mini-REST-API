@@ -10,12 +10,23 @@ from sqlalchemy.exc import IntegrityError
 from schemas import UserRegisterSchema, NoteSchema, UserSchema, UserUpdateSchema, LoginSchema, NoteCreateSchema, NoteUpdateSchema
 from marshmallow import ValidationError
 import logging
+from flask_wtf.csrf import validate_csrf
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 api_bp = Blueprint('api_bp', __name__)
 api = Api(api_bp)
+
+@api_bp.before_request
+def check_csrf_token():
+    if request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
+        csrf_token = request.headers.get('X-CSRF-Token')
+        try:
+            validate_csrf(csrf_token)
+        except Exception as e:
+            logger.error(f"CSRF validation error: {str(e)}")
+            abort(400, "The CSRF token is missing.")
 
 def authenticate_request():
     user_id = get_jwt_identity()

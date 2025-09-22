@@ -17,9 +17,18 @@
                     </svg>
                 </div>
                 <h3 class="info-title">{% block heading %}Info{% endblock %}</h3>
+                <form id="info-form" onsubmit="handleUpdate(event)" autocomplete="off" class="info-form">
+                {{ form.csrf_token }}
                 <ul id="info-fields" class="info-list"></ul>
-                <div class="button-group" id="button-group">
+                <div class="button-group" id="button-group"></div>
+                <div id="client-error" class="error-message" style="display:none;">
+                    <svg style="vertical-align: middle;" width="18" height="18" viewBox="0 0 20 20">
+                        <circle cx="10" cy="10" r="10" fill="#e74c3c"/>
+                        <text x="10" y="15" text-anchor="middle" fill="#fff" font-size="13" font-family="Arial">!</text>
+                    </svg>
+                    <span id="client-error-text" style="margin-left: 8px;"></span>
                 </div>
+            </form>
             </div>
         </div>
     </body>

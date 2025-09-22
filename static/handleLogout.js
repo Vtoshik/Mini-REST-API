@@ -6,13 +6,10 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = '/login';
     }
 
-    const logoutLink = document.querySelector('button[onclick="window.location.href=\'/logout\'"]');
-    if (logoutLink) {
-        logoutLink.addEventListener('click', function(event) {
+    document.addEventListener('click', (event) => {
+        if (event.target.classList.contains('logout-btn')) {
             event.preventDefault();
             logout();
-        });
-    } else {
-        console.warn('Logout link not found in the document');
-    }
+        }
+    });
 });
