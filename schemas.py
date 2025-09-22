@@ -6,8 +6,8 @@ class UserRegisterSchema(Schema):
     email = fields.Email(required=True, validate=Length(max=255, error="Email too long"))
     password = fields.Str(required=True, 
         validate=Regexp(
-            r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$',
-            error="Password must be 8+ characters, including at least one uppercase letter, one lowercase letter, one digit, and one special character"
+            r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_])[A-Za-z\d@$!%*?&]{8,}$',
+            error="Password must be 8+ characters, including at least one uppercase letter, one lowercase letter, one digit, and one special character from @, $, !, %, *, ?, &, _"
         )
     )
 
@@ -27,7 +27,7 @@ class UserUpdateSchema(Schema):
     email = fields.Email(validate=Length(max=255, error="Email too long"))
     password = fields.Str(
         validate=Regexp(
-            r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$',
+            r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_])[A-Za-z\d@$!%*?&]{8,}$',
             error="Password must be 8+ characters, including at least one uppercase letter, one lowercase letter, one digit, and one special character"
         )
     )

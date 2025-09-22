@@ -1,7 +1,21 @@
 #user_routes.py
-from flask import render_template, redirect, Blueprint, url_for
+from flask import Blueprint, render_template, redirect, url_for
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, EmailField, SubmitField
+from wtforms.validators import DataRequired, Length, Email
 
 user_bp = Blueprint('user_bp', __name__)
+
+class LoginForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField('Login')
+
+class RegisterForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
+    email = EmailField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField('Register')
 
 @user_bp.route('/')
 def user_index():
@@ -9,11 +23,13 @@ def user_index():
 
 @user_bp.route('/register', methods=['GET', 'POST'])
 def register():
-    return render_template('register.html')
+    form = RegisterForm()
+    return render_template('register.html', form=form)
 
 @user_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    return render_template('login.html')
+    form = LoginForm()
+    return render_template('login.html', form=form)
 
 @user_bp.route('/add_note')
 def add_note():

@@ -13,10 +13,14 @@ document.addEventListener("DOMContentLoaded", function () {
         const email = document.getElementById("email");
         const password = document.getElementById("password");
 
+        // Username validation (3-20 characters)
         if (username && username.value.trim() === "") {
             errors.push("Username is required");
+        } else if (username && (username.value.length < 3 || username.value.length > 20)) {
+            errors.push("Username must be 3-20 characters");
         }
 
+        // Email validation
         if (email) {
             if (email.value.trim() === "") {
                 errors.push("Email is required");
@@ -25,8 +29,14 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
-        if (password && password.value.trim().length < 6) {
-            errors.push("Password must be at least 6 characters");
+        // Password validation (8+ chars, uppercase, lowercase, digit, special character)
+        if (password) {
+            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_])[A-Za-z\d@$!%*?&]{8,}$/;
+            if (password.value.trim() === "") {
+                errors.push("Password is required");
+            } else if (!passwordRegex.test(password.value)) {
+                errors.push("Password must be 8+ characters, including at least one uppercase letter, one lowercase letter, one digit, and one special character from @, $, !, %, *, ?, &");
+            }
         }
 
         if (errors.length > 0) {

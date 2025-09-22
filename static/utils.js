@@ -101,7 +101,7 @@ function checkRoute(func_type=NaN){
     };
 }
 
-async function apiRequest(method, route, alertText, body = null, authRequired = true){
+async function apiRequest(method, route, alertText, body = null, authRequired = true, csrfToken = null){
     const options = {
         method: method,
         headers: {
@@ -112,13 +112,18 @@ async function apiRequest(method, route, alertText, body = null, authRequired = 
     if (authRequired) {
         const token = localStorage.getItem('access_token');
         if (!token) {
-            alert('No access token found. PLease log in');
+            const errorMessage = 'No access token found. Please log in';
+            alert(errorMessage);
             window.location.href = '/login';
-            throw new Error('No access token found');
+            throw new Error(errorMessage);
         }
         options.headers['Authorization'] = `Bearer ${token}`;
     }
 
+    if (csrfToken) {
+        options.headers['X-CSRF-Token'] = csrfToken;
+    }
+    
     if (body) {
         options.body = JSON.stringify(body);
     }
@@ -131,19 +136,21 @@ async function apiRequest(method, route, alertText, body = null, authRequired = 
             }
             const data = await response.json();
             return { objects: data };
-        } else if (response.status === 401 && authRequired) {
-            alert('Authentication failed. Please log in again.');
-            window.location.href = '/login';
-            throw new Error('Authentication failed');
         } else {
             const error = await response.json();
-            alert(`Error ${response.status}: ${error.message || JSON.stringify(error)}`);
-            throw new Error(`Server error: ${error.message || JSON.stringify(error)}`);
+            let message = error.message || JSON.stringify(error);
+            if (error.errors) {
+                message = Object.values(error.errors).flat().join(", ");
+            }
+            if (response.status === 401 && authRequired) {
+                alert('Authentication failed. Please log in again.');
+                window.location.href = '/login';
+                throw new Error('Authentication failed');
+            }
+            throw new Error(message);
         }
     } catch (error) {
-        console.error('API request error', error);
-        alert(`Failed to load ${alertText}`);
-        throw error;
+        console.error('API request error:', error);
+        throw error; // Let caller handle the error
     }
-
 }

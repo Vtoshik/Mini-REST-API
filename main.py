@@ -9,6 +9,7 @@ from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_cors import CORS
+from flask_wtf.csrf import CSRFProtect
 
 # Files
 from database import db
@@ -35,6 +36,8 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY','dev_secret_key')
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'super-secret')
 app.config['JWT_TOKEN_LOCATION'] = ['headers']
 app.config['RATELIMIT_STORAGE_URI'] = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+app.config['WTF_CSRF_ENABLED'] = True
+app.config['WTF_CSRF_EXEMPT_LIST'] = ['api_bp.*']
 
 db.init_app(app)
 migrate = Migrate(app, db)
@@ -45,7 +48,8 @@ limiter = Limiter(
     storage_uri=app.config['RATELIMIT_STORAGE_URI']  # Use Redis storage
 )
 limiter.init_app(app)
-CORS(app, resources={r"/api/v1/*": {"origins": ["http://localhost:3000"]}})
+csrf = CSRFProtect(app)
+CORS(app, resources={r"/api/v1/*": {"origins": ["http://localhost:3000", "http://localhost:5000"]}})
 
 app.register_blueprint(user_bp)
 app.register_blueprint(api_bp)

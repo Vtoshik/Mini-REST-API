@@ -18,6 +18,7 @@
             </div>
 
             <form id="login-form" autocomplete="off" class="login-form" onsubmit="handleLogin(event)">
+                {{ form.csrf_token }}
                 <h3 class="login">Login</h3>
 
                 <div class="form-group">

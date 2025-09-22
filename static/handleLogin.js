@@ -5,7 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const username = document.getElementById('username')?.value;
         const password = document.getElementById('password')?.value;
         const errorDiv = document.getElementById('client-error');
-        const errorText = document.getElementById('client-error-text')
+        const errorText = document.getElementById('client-error-text');
+        const submitBtn = document.querySelector("button[type='submit']");
+        const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
 
         if (!username || !password) {
             errorText.textContent = 'Username and password are required';
@@ -16,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = { username, password };
 
         try {
-            result = await apiRequest('POST', '/api/v1/login', 'login', data, false);
+            result = await apiRequest('POST', '/api/v1/login', 'login', data, false, csrfToken);
             const objects = result.objects;
             const access_token = objects.access_token;
             const user_id = objects.user_id;
@@ -27,11 +29,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const redirectUrl = user_status === 'admin' ? '/admin/' : '/';
             window.location.href = redirectUrl;
         } catch (error) {
-            console.error('Fetch error:', error);
-            const errorDiv = document.getElementById('client-error');
-            const errorText = document.getElementById('client-error-text');
-            errorText.textContent = 'An unexpected error occurred. Check console for details.';
+            console.error('Login error:', error);
+            errorText.textContent = error.message || 'An unexpected error occurred. Check console for details.';
             errorDiv.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Login'; // Reset button
         }
     }
 
