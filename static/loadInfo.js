@@ -28,7 +28,6 @@ async function loadInfo() {
             `;
         } else if (status ==='user'){
             document.getElementById('info-fields').innerHTML = `
-                <li>Id: ${object.id}</li>
                 <li>Title: 
                     <span contenteditable="true" data-field="title">
                     ${object.title}</span></li>

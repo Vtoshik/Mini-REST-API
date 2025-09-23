@@ -3,6 +3,7 @@ from flask import Blueprint, render_template, redirect, url_for
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, EmailField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Length, Email
+from flask_jwt_extended import get_jwt_identity, jwt_required
 
 user_bp = Blueprint('user_bp', __name__)
 
@@ -22,9 +23,16 @@ class AddNoteForm(FlaskForm):
     content = TextAreaField('Content')
     submit = SubmitField('Add Note')
 
+
 @user_bp.route('/')
+@jwt_required(optional=True)
 def user_index():
-    return render_template('user_index.html')
+    identity = get_jwt_identity()
+    print(f'DEBUG: identity from token: {identity}')
+    if identity:
+        return render_template('user_index.html')
+    form = LoginForm()
+    return render_template('login.html', form=form)
 
 @user_bp.route('/register', methods=['GET', 'POST'])
 def register():

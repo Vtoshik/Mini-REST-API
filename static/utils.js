@@ -42,21 +42,22 @@ function checkRoute(action = null) {
 async function apiRequest(method, route, alertText, body = null, authRequired = true, csrfToken = null){
     const options = {
         method: method,
+        credentials: 'include',
         headers: {
             'Content-Type': 'application/json'
         }
     };
     
-    if (authRequired) {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            const errorMessage = 'No access token found. Please log in';
-            alert(errorMessage);
-            window.location.href = '/login';
-            throw new Error(errorMessage);
-        }
-        options.headers['Authorization'] = `Bearer ${token}`;
-    }
+    //if (authRequired) {
+    //    const token = localStorage.getItem('access_token');
+    //    if (!token) {
+     //       const errorMessage = 'No access token found. Please log in';
+      //      alert(errorMessage);
+        //    window.location.href = '/login';
+         //   throw new Error(errorMessage);
+        //}
+        //options.headers['Authorization'] = `Bearer ${token}`;
+    //}
 
     if (csrfToken) {
         options.headers['X-CSRF-Token'] = csrfToken;

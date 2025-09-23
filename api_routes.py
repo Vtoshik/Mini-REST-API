@@ -2,10 +2,10 @@
 from database import db
 from models.user import User
 from models.note import Note
-from flask import request, Blueprint, abort
+from flask import request, Blueprint, abort, jsonify, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_restful import Api, Resource
-from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
+from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity, set_access_cookies
 from sqlalchemy.exc import IntegrityError
 from schemas import UserRegisterSchema, NoteSchema, UserSchema, UserUpdateSchema, LoginSchema, NoteCreateSchema, NoteUpdateSchema
 from marshmallow import ValidationError
@@ -62,7 +62,10 @@ class Login(Resource):
         if user and check_password_hash(user.password, data['password']):
             access_token = create_access_token(identity=str(user.id))
             logger.debug(f"Login successful for user {data['username']}, token created")
-            return {"message": "Login successful", 'access_token': access_token, 'user_id': user.id, 'user_status': user.status}, 200
+            response = jsonify({"message": "Login successful", 'user_id': user.id, 'user_status': user.status})
+            set_access_cookies(response, access_token)
+            flask_response = make_response(response)
+            return flask_response
         return {"message": "Invalid credentials"}, 401
 
            
