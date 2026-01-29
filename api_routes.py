@@ -5,7 +5,7 @@ from models.note import Note
 from flask import request, Blueprint, abort, jsonify, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_restful import Api, Resource
-from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity, set_access_cookies
+from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity, set_access_cookies, unset_jwt_cookies
 from sqlalchemy.exc import IntegrityError
 from schemas import UserRegisterSchema, NoteSchema, UserSchema, UserUpdateSchema, LoginSchema, NoteCreateSchema, NoteUpdateSchema
 from marshmallow import ValidationError
@@ -18,15 +18,19 @@ logger = logging.getLogger(__name__)
 api_bp = Blueprint('api_bp', __name__)
 api = Api(api_bp)
 
+CSRF_EXEMPT_ENDPOINTS = {'api_bp.login', 'api_bp.register', 'api_bp.logout'}
+
 @api_bp.before_request
 def check_csrf_token():
+    if request.endpoint in CSRF_EXEMPT_ENDPOINTS:
+        return
     if request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
         csrf_token = request.headers.get('X-CSRF-Token')
         try:
             validate_csrf(csrf_token)
         except Exception as e:
             logger.error(f"CSRF validation error: {str(e)}")
-            abort(400, "The CSRF token is missing.")
+            return jsonify({"message": "The CSRF token is missing or invalid."}), 400
 
 def authenticate_request():
     user_id = get_jwt_identity()
@@ -108,6 +112,36 @@ class Users(Resource):
         users_schema = UserSchema(many=True)
         return users_schema.dump(users), 200
 
+    @jwt_required()
+    def post(self):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        if user.status != 'admin':
+            return {"message": "Admin access required"}, 403
+        schema = UserRegisterSchema()
+        try:
+            data = schema.load(request.get_json())
+        except ValidationError as error:
+            return {"errors": error.messages}, 400
+        existing_user = User.query.filter(
+            (User.email == data['email']) | (User.username == data['username'])
+        ).first()
+        if existing_user:
+            return {"message": "User with this email or username already exists."}, 400
+        hashed_password = generate_password_hash(data['password'])
+        new_user = User(username=data['username'], email=data['email'], password=hashed_password)
+        try:
+            db.session.add(new_user)
+            db.session.commit()
+            return {"message": "User created successfully", "user_id": new_user.id}, 201
+        except IntegrityError:
+            db.session.rollback()
+            return {"message": "User with this email or username already exists."}, 400
+        except Exception as e:
+            db.session.rollback()
+            return {"message": "Server error"}, 500
+
 class UserResource(Resource):
     @jwt_required()
     def get(self, user_id):
@@ -116,13 +150,13 @@ class UserResource(Resource):
             return {"message": "Authentication required"}, 401
         if user.status != 'admin':
             return {"message": "Forbidden"}, 403
-        user = User.query.get_or_404(user_id)
+        target_user = User.query.get_or_404(user_id)
         return {
-            "id": user.id, 
-            "username": user.username, 
-            "email": user.email, 
-            "status": user.status, 
-            "created_at": user.created_at.isoformat()
+            "id": target_user.id,
+            "username": target_user.username,
+            "email": target_user.email,
+            "status": target_user.status,
+            "created_at": target_user.created_at.isoformat()
             }, 200
     
     @jwt_required()
@@ -276,7 +310,14 @@ class NoteResource(Resource):
             logger.error(f"Error deleting note {note_id}: {str(e)}", exc_info=True)
             return {"message": "Failed to delete note", "error": str(e)}, 500
 
+class Logout(Resource):
+    def post(self):
+        response = jsonify({"message": "Logout successful"})
+        unset_jwt_cookies(response)
+        return make_response(response)
+
 # Resources
+api.add_resource(Logout, '/api/v1/logout')
 api.add_resource(Login, '/api/v1/login')
 api.add_resource(Register, '/api/v1/register')
 api.add_resource(Users, '/api/v1/admin/users')

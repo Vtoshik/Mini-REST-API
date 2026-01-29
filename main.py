@@ -38,10 +38,9 @@ app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
 app.config['JWT_COOKIE_SECURE'] = False
 app.config['JWT_ACCESS_COOKIE_PATH'] = '/'
 app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
-app.config['JWT_COOKIE_CSRF_PROTECT'] = True
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 app.config['RATELIMIT_STORAGE_URI'] = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
 app.config['WTF_CSRF_ENABLED'] = True
-app.config['WTF_CSRF_EXEMPT_LIST'] = ['api_bp.*']
 
 db.init_app(app)
 migrate = Migrate(app, db)
@@ -57,6 +56,7 @@ CORS(app, resources={r"/api/v1/*": {"origins": ["http://localhost:3000", "http:/
 
 app.register_blueprint(user_bp)
 app.register_blueprint(api_bp)
+csrf.exempt(api_bp)
 app.register_blueprint(admin_bp, url_prefix='/admin')
 
 # Apply rate limiting to login and register

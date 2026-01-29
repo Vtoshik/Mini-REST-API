@@ -1,5 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
-    function logout() {
+    async function logout() {
+        try {
+            const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
+            await apiRequest('POST', '/api/v1/logout', 'logout', null, false, csrfToken);
+        } catch (error) {
+            console.error('Logout API error:', error);
+        }
         localStorage.removeItem('access_token');
         localStorage.removeItem('user_id');
         localStorage.removeItem('user_status');

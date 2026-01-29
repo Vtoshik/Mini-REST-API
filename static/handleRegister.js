@@ -18,7 +18,7 @@ async function handleRegister(event) {
     const data = { username, email, password };
 
     try {
-        result = await apiRequest('POST', '/api/v1/register', 'registration', data, false, csrfToken);
+        const result = await apiRequest('POST', '/api/v1/register', 'registration', data, false, csrfToken);
         alert('Registration successful! Please log in.');
         window.location.href = '/login';
     } catch (error) {

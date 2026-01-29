@@ -4,16 +4,19 @@ from marshmallow.validate import Length, Email, Regexp
 class UserRegisterSchema(Schema):
     username  = fields.Str(required=True, validate=Length(min=3, max=20, error="Username 3-20 chars"))
     email = fields.Email(required=True, validate=Length(max=255, error="Email too long"))
-    password = fields.Str(required=True, 
+    password = fields.Str(required=True,
         validate=Regexp(
-            r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_])[A-Za-z\d@$!%*?&]{8,}$',
+            r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_])[A-Za-z\d@$!%*?&_]{8,}$',
             error="Password must be 8+ characters, including at least one uppercase letter, one lowercase letter, one digit, and one special character from @, $, !, %, *, ?, &, _"
         )
     )
 
+    class Meta:
+        unknown = EXCLUDE
+
 class LoginSchema(Schema):
     username = fields.Str(required=True, validate=Length(min=3, max=20, error="Username 3-20 chars"))
-    password = fields.Str(required=True, validate=Length(min=6, error="Password minimum 8 chars"))
+    password = fields.Str(required=True)
 
 class UserSchema(Schema):
     id = fields.Int(dump_only=True)
@@ -27,7 +30,7 @@ class UserUpdateSchema(Schema):
     email = fields.Email(validate=Length(max=255, error="Email too long"))
     password = fields.Str(
         validate=Regexp(
-            r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_])[A-Za-z\d@$!%*?&]{8,}$',
+            r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_])[A-Za-z\d@$!%*?&_]{8,}$',
             error="Password must be 8+ characters, including at least one uppercase letter, one lowercase letter, one digit, and one special character"
         )
     )

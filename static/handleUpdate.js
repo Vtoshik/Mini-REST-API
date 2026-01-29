@@ -1,4 +1,7 @@
-async function handleUpdate(event) {
+async function handleUpdate(eventOrId) {
+    if (eventOrId && typeof eventOrId.preventDefault === 'function') {
+        eventOrId.preventDefault();
+    }
     const pathParts = window.location.pathname.split('/');
     const pageId = pathParts[pathParts.length - 1];
     const { route, alertText, method, updatedData } = checkRoute('update');

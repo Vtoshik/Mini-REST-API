@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = { username, password };
 
         try {
-            result = await apiRequest('POST', '/api/v1/login', 'login', data, false, csrfToken);
+            const result = await apiRequest('POST', '/api/v1/login', 'login', data, false, csrfToken);
             const objects = result.objects;
             const access_token = objects.access_token;
             const user_id = objects.user_id;

@@ -12,8 +12,8 @@ async function loadObjects() {
             const row = document.createElement('tr');
             if (status === 'user') {
                 row.innerHTML = `
-                    <td>${obj.id}</td>
-                    <td>${obj.title}</td>
+                    <td>${escapeHtml(obj.id)}</td>
+                    <td>${escapeHtml(obj.title)}</td>
                     <td>
                         <button class="info-note" onclick="window.location.href='/note/${obj.id}'">Content</button>
                     </td>
@@ -23,7 +23,7 @@ async function loadObjects() {
                 `;
             } else if (status === 'admin') {
                 row.innerHTML = `
-                    <td>${obj.username}</td>
+                    <td>${escapeHtml(obj.username)}</td>
                     <td>
                         <button class="info-user" onclick="window.location.href='/admin/user/${obj.id}'">Info</button>
                     </td>

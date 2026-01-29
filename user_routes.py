@@ -55,7 +55,7 @@ def note_info(note_id):
     return render_template('note_info.html', form=form, note_id=note_id)
 
 @user_bp.route('/delete/<int:id>')
-def delete_note():
+def delete_note(id):
     return redirect(url_for('user_bp.user_index'))
 
 @user_bp.route('/logout')
