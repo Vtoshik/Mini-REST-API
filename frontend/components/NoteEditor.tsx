@@ -21,9 +21,12 @@ export function NoteEditor({ note }: { note: Note }) {
   const router = useRouter();
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content ?? "");
+  const [category, setCategory] = useState(note.category ?? "");
+  const [pinned, setPinned] = useState(note.pinned);
   const [titleError, setTitleError] = useState<string | undefined>();
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [togglingPin, setTogglingPin] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -35,12 +38,29 @@ export function NoteEditor({ note }: { note: Note }) {
 
     setSaving(true);
     try {
-      await apiFetch(`/api/v1/notes/${note.id}`, { method: "PATCH", body: { title, content } });
+      await apiFetch(`/api/v1/notes/${note.id}`, {
+        method: "PATCH",
+        body: { title, content, category: category || null },
+      });
       router.refresh();
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : "Something went wrong. Try again.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleTogglePin() {
+    setFormError(null);
+    setTogglingPin(true);
+    try {
+      await apiFetch(`/api/v1/notes/${note.id}`, { method: "PATCH", body: { pinned: !pinned } });
+      setPinned(!pinned);
+      router.refresh();
+    } catch (err) {
+      setFormError(err instanceof ApiError ? err.message : "Couldn't update pin status.");
+    } finally {
+      setTogglingPin(false);
     }
   }
 
@@ -51,14 +71,29 @@ export function NoteEditor({ note }: { note: Note }) {
       router.push("/notes");
       router.refresh();
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Couldn't delete this note.");
+      setFormError(err instanceof ApiError ? err.message : "Couldn't move this note to trash.");
       setDeleting(false);
     }
   }
 
   return (
     <div className="mt-8 flex flex-col gap-5">
-      <FormField id="title" label="Title (20 chars max)" value={title} onChange={setTitle} error={titleError} />
+      <div className="flex items-center justify-between gap-3">
+        <FormField id="title" label="Title (20 chars max)" value={title} onChange={setTitle} error={titleError} />
+        <button
+          type="button"
+          onClick={handleTogglePin}
+          disabled={togglingPin}
+          className={`shrink-0 self-end rounded-sm border px-3 py-2 font-display text-xs font-medium transition-colors disabled:opacity-60 ${
+            pinned
+              ? "border-accent text-accent hover:bg-accent hover:text-paper-card"
+              : "border-ink text-ink hover:border-accent hover:text-accent"
+          }`}
+        >
+          {pinned ? "Pinned" : "Pin"}
+        </button>
+      </div>
+      <FormField id="category" label="Category (optional)" value={category} onChange={setCategory} />
       <TextAreaField id="content" label="Content" value={content} onChange={setContent} />
 
       {formError && (
@@ -86,14 +121,14 @@ export function NoteEditor({ note }: { note: Note }) {
         <div className="ml-auto">
           {confirmingDelete ? (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-ink-muted">Delete for good?</span>
+              <span className="text-sm text-ink-muted">Move to trash?</span>
               <button
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
                 className="rounded-sm bg-signal px-3 py-1.5 font-display text-xs font-medium text-paper-card transition-colors hover:bg-signal-hover disabled:opacity-60"
               >
-                {deleting ? "Deleting…" : "Confirm"}
+                {deleting ? "Moving…" : "Confirm"}
               </button>
               <button
                 type="button"
@@ -109,7 +144,7 @@ export function NoteEditor({ note }: { note: Note }) {
               onClick={() => setConfirmingDelete(true)}
               className="font-display text-xs font-medium text-signal hover:text-signal-hover"
             >
-              Delete note
+              Move to trash
             </button>
           )}
         </div>

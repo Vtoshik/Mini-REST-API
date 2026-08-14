@@ -2,9 +2,9 @@ import Link from "next/link";
 import { NoteCard } from "@/components/NoteCard";
 
 const SAMPLE_NOTES = [
-  { id: 12, title: "Deploy checklist", content: "Rotate JWT secret, confirm CORS origins, tag release.", created_at: "2026-08-01" },
-  { id: 7, title: "Reading list", content: "Designing Data-Intensive Applications, ch. 5–7.", created_at: "2026-07-22" },
-  { id: 3, title: "Standup notes", content: "Migration 006 blocked on index rebuild timing.", created_at: "2026-07-14" },
+  { id: 12, title: "Deploy checklist", content: "Rotate JWT secret, confirm CORS origins, tag release.", category: "work", pinned: true, created_at: "2026-08-01" },
+  { id: 7, title: "Reading list", content: "Designing Data-Intensive Applications, ch. 5–7.", category: null, pinned: false, created_at: "2026-07-22" },
+  { id: 3, title: "Standup notes", content: "Migration 006 blocked on index rebuild timing.", category: "work", pinned: false, created_at: "2026-07-14" },
 ];
 
 export default function Home() {

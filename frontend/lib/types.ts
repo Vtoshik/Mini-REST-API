@@ -12,5 +12,8 @@ export interface Note {
   id: number;
   title: string;
   content: string | null;
+  category?: string | null;
+  pinned: boolean;
   created_at?: string;
+  deleted_at?: string | null;
 }

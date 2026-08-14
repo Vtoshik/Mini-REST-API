@@ -22,6 +22,7 @@ export default function NewNotePage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [category, setCategory] = useState("");
   const [titleError, setTitleError] = useState<string | undefined>();
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -35,7 +36,7 @@ export default function NewNotePage() {
 
     setSubmitting(true);
     try {
-      await apiFetch("/api/v1/notes", { method: "POST", body: { title, content } });
+      await apiFetch("/api/v1/notes", { method: "POST", body: { title, content, category: category || null } });
       router.push("/notes");
       router.refresh();
     } catch (err) {
@@ -56,6 +57,7 @@ export default function NewNotePage() {
 
       <form onSubmit={handleSubmit} noValidate className="mt-8 flex flex-col gap-5">
         <FormField id="title" label="Title (20 chars max)" value={title} onChange={setTitle} error={titleError} />
+        <FormField id="category" label="Category (optional)" value={category} onChange={setCategory} />
         <TextAreaField id="content" label="Content" value={content} onChange={setContent} />
 
         {formError && (
