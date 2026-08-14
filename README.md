@@ -8,7 +8,7 @@ Mini-REST-API is a full-stack note-taking application: a Flask JSON API backend 
   Secure login and registration with JWT-based authentication and CSRF protection.
 
 - **Note Management:**  
-  Users can create, view, edit, and delete notes with a maximum title length of 20 characters.
+  Users can create, view, edit, categorize, and pin notes (title max 20 characters). Deleting moves a note to trash, where it can be restored or permanently deleted. Notes can be searched and filtered by category.
 
 - **Admin User Management:**  
   Admins can create, view, update, and delete user accounts with role-based access control.
@@ -123,11 +123,14 @@ The frontend is at http://localhost:3000 (this is what you open in a browser) an
 | /api/v1/me               | PUT    | Update own username/email     | JWT            |
 | /api/v1/me/password      | POST   | Change own password (requires current password) | JWT |
 | /api/v1/reset-password   | POST   | Complete a password reset with a token | None   |
-| /api/v1/notes            | GET    | List user's notes             | JWT            |
-| /api/v1/notes            | POST   | Create a new note             | JWT            |
-| /api/v1/notes/<id>       | GET    | Get note details               | JWT (owner)    |
-| /api/v1/notes/<id>       | PATCH  | Update note                    | JWT (owner)    |
-| /api/v1/notes/<id>       | DELETE | Delete note                    | JWT (owner)    |
+| /api/v1/notes            | GET    | List user's active notes       | JWT            |
+| /api/v1/notes            | POST   | Create a new note (title, content, category) | JWT |
+| /api/v1/notes/<id>       | GET    | Get note details (404 if trashed) | JWT (owner) |
+| /api/v1/notes/<id>       | PATCH  | Update note (title/content/category/pinned) | JWT (owner) |
+| /api/v1/notes/<id>       | DELETE | Move note to trash              | JWT (owner)    |
+| /api/v1/notes/trash      | GET    | List trashed notes             | JWT            |
+| /api/v1/notes/<id>/restore | POST | Restore a trashed note        | JWT (owner)    |
+| /api/v1/notes/<id>/permanent | DELETE | Permanently delete a trashed note | JWT (owner) |
 | /api/v1/admin/users      | GET    | List all users                 | JWT (admin)    |
 | /api/v1/admin/users      | POST   | Create a user                  | JWT (admin)    |
 | /api/v1/admin/users/<id> | GET    | Get user details               | JWT (admin)    |
@@ -144,7 +147,8 @@ The frontend is at http://localhost:3000 (this is what you open in a browser) an
 | /register      | Create an account                          |
 | /notes         | Notes dashboard (requires authentication)  |
 | /notes/new     | Create a note                              |
-| /notes/<id>    | View/edit/delete a note                    |
+| /notes/<id>    | View/edit a note, pin/unpin, move to trash |
+| /notes/trash   | Restore or permanently delete trashed notes |
 | /account       | Self-service profile and password change (requires authentication) |
 | /admin         | User list (admin-only)                     |
 | /admin/new     | Create a user (admin-only)                 |
