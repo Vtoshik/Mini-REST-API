@@ -52,7 +52,7 @@ limiter = Limiter(
 )
 limiter.init_app(app)
 csrf = CSRFProtect(app)
-CORS(app, resources={r"/api/v1/*": {"origins": ["http://localhost:3000", "http://localhost:5000"]}})
+CORS(app, resources={r"/api/v1/*": {"origins": ["http://localhost:3000", "http://localhost:5000"], "supports_credentials": True}})
 
 app.register_blueprint(user_bp)
 app.register_blueprint(api_bp)

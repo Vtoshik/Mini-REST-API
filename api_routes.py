@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from schemas import UserRegisterSchema, NoteSchema, UserSchema, UserUpdateSchema, LoginSchema, NoteCreateSchema, NoteUpdateSchema
 from marshmallow import ValidationError
 import logging
-from flask_wtf.csrf import validate_csrf
+from flask_wtf.csrf import validate_csrf, generate_csrf
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -316,10 +316,24 @@ class Logout(Resource):
         unset_jwt_cookies(response)
         return make_response(response)
 
+class CsrfToken(Resource):
+    def get(self):
+        return {"csrf_token": generate_csrf()}, 200
+
+class Me(Resource):
+    @jwt_required()
+    def get(self):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        return {"id": user.id, "username": user.username, "status": user.status}, 200
+
 # Resources
 api.add_resource(Logout, '/api/v1/logout')
 api.add_resource(Login, '/api/v1/login')
 api.add_resource(Register, '/api/v1/register')
+api.add_resource(CsrfToken, '/api/v1/csrf-token')
+api.add_resource(Me, '/api/v1/me')
 api.add_resource(Users, '/api/v1/admin/users')
 api.add_resource(UserResource, '/api/v1/admin/users/<int:user_id>')
 api.add_resource(Notes, '/api/v1/notes')
