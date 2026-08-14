@@ -11,6 +11,8 @@ from schemas import UserRegisterSchema, NoteSchema, UserSchema, UserUpdateSchema
 from marshmallow import ValidationError
 import logging
 from flask_wtf.csrf import validate_csrf, generate_csrf
+from flask_jwt_extended.exceptions import JWTExtendedException
+from jwt.exceptions import PyJWTError
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -49,6 +51,12 @@ def authenticate_and_check_admin():
     if not user or user.status != 'admin':
         abort(403, "Admin access required")
     return user
+
+@api_bp.errorhandler(JWTExtendedException)
+@api_bp.errorhandler(PyJWTError)
+def handle_jwt_error(e):
+    logger.warning(f"JWT error: {str(e)}")
+    return {"message": "Authentication required"}, 401
 
 @api_bp.errorhandler(Exception)
 def handle_exception(e):
@@ -178,6 +186,8 @@ class UserResource(Resource):
         if 'email' in data:
             target_user.email = data['email']
         if 'status' in data:
+            if user.status != 'admin':
+                return {"message": "Only admins can change account status"}, 403
             target_user.status = data['status']
         if 'password' in data and data['password']:  # Only update if provided
             target_user.password = generate_password_hash(data['password'])
