@@ -16,8 +16,6 @@ from database import db
 from models.user import User
 from models.note import Note
 from api_routes import api_bp
-from user_routes import user_bp
-from admin_routes import admin_bp
 from api_routes import Login, Register
 
 app = Flask(__name__)
@@ -64,10 +62,8 @@ def exempt_navigation_endpoints():
 csrf = CSRFProtect(app)
 CORS(app, resources={r"/api/v1/*": {"origins": ["http://localhost:3000", "http://localhost:5000"], "supports_credentials": True}})
 
-app.register_blueprint(user_bp)
 app.register_blueprint(api_bp)
 csrf.exempt(api_bp)
-app.register_blueprint(admin_bp, url_prefix='/admin')
 
 # Apply rate limiting to login and register
 @limiter.limit("10 per minute")
