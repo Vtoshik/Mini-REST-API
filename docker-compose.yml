@@ -1,0 +1,62 @@
+# One-command local dev environment. Not a production setup — see the
+# Dockerfiles for why (dev servers with hot reload, not production builds).
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: mini_rest
+      POSTGRES_PASSWORD: mini_rest
+      POSTGRES_DB: mini_rest
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mini_rest"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: postgresql://mini_rest:mini_rest@postgres:5432/mini_rest
+      SECRET_KEY: dev-secret-change-me
+      JWT_SECRET_KEY: dev-jwt-secret-change-me
+      REDIS_URL: redis://redis:6379/0
+      FLASK_DEBUG: "1"
+    volumes:
+      - .:/app
+      - backend_venv:/app/.venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5000
+      API_INTERNAL_URL: http://backend:5000
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+      - frontend_next:/app/.next
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  backend_venv:
+  frontend_node_modules:
+  frontend_next:

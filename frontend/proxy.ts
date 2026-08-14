@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+// See the comment in lib/serverFetch.ts: this runs server-side too, so it
+// needs the internal (container-to-container) URL in Docker Compose, not
+// the browser-facing one.
+const API_BASE_URL =
+  process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 
 export async function proxy(request: NextRequest) {
   const res = await fetch(`${API_BASE_URL}/api/v1/me`, {

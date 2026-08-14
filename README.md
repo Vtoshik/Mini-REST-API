@@ -50,6 +50,12 @@ pytest
 uv (backend), npm (frontend)
 
 
+## Quick start with Docker Compose
+
+The fastest way to get everything running locally: `docker compose up` from the project root. This builds and starts Postgres, Redis, the Flask API (auto-applies migrations and seeds demo data on startup — see `flask seed-db` below for the accounts it creates), and the Next.js frontend, all wired together with hot reload against your local source. Frontend at `http://localhost:3000`, API at `http://localhost:5000`. It's a dev setup (hot-reloading dev servers, not a production build) — see `Dockerfile` / `frontend/Dockerfile` / `docker-compose.yml` if you want the details.
+
+If you'd rather run things natively (or don't have Docker), the manual setup below covers both.
+
 ## Installation
 ### Prerequisites
 
