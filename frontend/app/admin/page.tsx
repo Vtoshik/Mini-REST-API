@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import { serverFetch } from "@/lib/serverFetch";
 import { User } from "@/lib/types";
-import { UserRow } from "@/components/UserRow";
+import { UsersList } from "@/components/UsersList";
 import { LogoutButton } from "@/components/LogoutButton";
 
 export default async function AdminPage() {
@@ -45,17 +45,7 @@ export default async function AdminPage() {
         </Link>
       </div>
 
-      {users && users.length > 0 ? (
-        <div className="border-t border-rule">
-          {users.map((u) => (
-            <UserRow key={u.id} user={u} />
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-sm border border-dashed border-rule px-6 py-12 text-center">
-          <p className="font-display text-sm text-ink-muted">No accounts on file.</p>
-        </div>
-      )}
+      <UsersList users={users ?? []} />
     </main>
   );
 }
