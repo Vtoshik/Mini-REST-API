@@ -11,7 +11,6 @@ from flask_jwt_extended import create_access_token
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
     with app.test_client() as client:
         with app.app_context():
             db.create_all()
@@ -26,7 +25,8 @@ def auth_headers(client):
         db.session.add(user)
         db.session.commit()
         token = create_access_token(identity=str(user.id))
-    return {"Authorization": f"Bearer {token}"}
+    csrf_token = client.get('/api/v1/csrf-token').json['csrf_token']
+    return {"Authorization": f"Bearer {token}", "X-CSRF-Token": csrf_token}
 
 def test_create_note(client, auth_headers):
     response = client.post('/api/v1/notes', json={"title": "Test Note", "content": "Content"}, headers=auth_headers)

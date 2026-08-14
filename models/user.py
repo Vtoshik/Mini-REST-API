@@ -20,13 +20,3 @@ class User(db.Model):
 
     def __repr__(self):
         return f'<User {self.username}>'
-
-    def json(self):
-        return {
-            "id": self.id,
-            "username": self.username,
-            "email": self.email,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "status": self.status,
-            "notes": [note.json() for note in self.notes] if self.notes else []
-        }

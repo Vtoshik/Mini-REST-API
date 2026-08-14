@@ -19,12 +19,3 @@ class Note(db.Model):
 
     def __repr__(self):
         return f"Note(id={self.id}, title='{self.title}', content='{self.content}', created_at='{self.created_at}')"
-    
-    def json(self):
-        return {
-            "id": self.id,
-            "title": self.title,
-            "content": self.content,
-            "user_id": self.user_id,
-            "created_at": self.created_at.isoformat() if self.created_at else None
-        }

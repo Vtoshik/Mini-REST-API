@@ -6,7 +6,6 @@ from models.note import Note
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
 
     with app.test_client() as client:
         with app.app_context():
@@ -17,7 +16,7 @@ def client():
 
 def test_create_user_and_note(client):
     with app.app_context():
-        user = User(username="testuser", email="test@example.com")
+        user = User(username="testuser", email="test@example.com", password="hashed-password")
         db.session.add(user)
         db.session.commit()
 
@@ -31,11 +30,11 @@ def test_create_user_and_note(client):
 
 def test_user_email_uniqueness(client):
     with app.app_context():
-        user1 = User(username="u1", email="duplicate@example.com")
+        user1 = User(username="u1", email="duplicate@example.com", password="hashed-password")
         db.session.add(user1)
         db.session.commit()
 
-        user2 = User(username="u2", email="duplicate@example.com")
+        user2 = User(username="u2", email="duplicate@example.com", password="hashed-password")
         db.session.add(user2)
         with pytest.raises(Exception):
             db.session.commit()
