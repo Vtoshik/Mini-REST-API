@@ -7,31 +7,57 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { User, UserStatus } from "@/lib/types";
 import { FormField } from "@/components/FormField";
 
+interface ResetResponse {
+  reset_token: string;
+  reset_path: string;
+}
+
 export function UserEditor({ user }: { user: User }) {
   const router = useRouter();
   const [username, setUsername] = useState(user.username);
   const [email, setEmail] = useState(user.email);
   const [status, setStatus] = useState<UserStatus>(user.status);
-  const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [resetLink, setResetLink] = useState<string | null>(null);
+  const [sendingReset, setSendingReset] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   async function handleSave() {
     setFormError(null);
     setSaving(true);
     try {
-      const body: Record<string, string> = { username, email, status };
-      if (password) body.password = password;
-      await apiFetch(`/api/v1/admin/users/${user.id}`, { method: "PUT", body });
-      setPassword("");
+      await apiFetch(`/api/v1/admin/users/${user.id}`, { method: "PUT", body: { username, email, status } });
       router.refresh();
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : "Something went wrong. Try again.");
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleSendReset() {
+    setFormError(null);
+    setCopied(false);
+    setSendingReset(true);
+    try {
+      const data = await apiFetch<ResetResponse>(`/api/v1/admin/users/${user.id}/reset-password`, {
+        method: "POST",
+      });
+      setResetLink(`${window.location.origin}${data.reset_path}`);
+    } catch (err) {
+      setFormError(err instanceof ApiError ? err.message : "Couldn't create a reset link.");
+    } finally {
+      setSendingReset(false);
+    }
+  }
+
+  async function handleCopyReset() {
+    if (!resetLink) return;
+    await navigator.clipboard.writeText(resetLink);
+    setCopied(true);
   }
 
   async function handleDelete() {
@@ -66,14 +92,33 @@ export function UserEditor({ user }: { user: User }) {
         </select>
       </div>
 
-      <FormField
-        id="password"
-        label="New password (leave blank to keep current)"
-        type="password"
-        value={password}
-        onChange={setPassword}
-        autoComplete="new-password"
-      />
+      <div className="flex flex-col gap-2 rounded-sm border border-rule bg-paper-card px-4 py-3">
+        <p className="font-display text-xs uppercase tracking-[0.15em] text-ink-muted">Password</p>
+        <p className="text-sm text-ink-muted">
+          Admins can&apos;t set a password directly. Send a reset link instead — there&apos;s no email
+          service configured yet, so copy it and share it with them.
+        </p>
+        <button
+          type="button"
+          onClick={handleSendReset}
+          disabled={sendingReset}
+          className="mt-1 self-start rounded-sm border border-ink px-3 py-1.5 font-display text-xs font-medium text-ink transition-colors hover:border-accent hover:text-accent disabled:opacity-60"
+        >
+          {sendingReset ? "Creating link…" : "Send password reset"}
+        </button>
+        {resetLink && (
+          <div className="mt-1 flex items-center gap-2">
+            <code className="flex-1 truncate rounded-sm bg-paper px-2 py-1.5 text-xs text-ink">{resetLink}</code>
+            <button
+              type="button"
+              onClick={handleCopyReset}
+              className="font-display text-xs font-medium text-accent hover:text-accent-hover"
+            >
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+        )}
+      </div>
 
       {formError && (
         <p role="alert" className="rounded-sm border border-signal bg-signal/10 px-3 py-2 text-sm text-signal">
