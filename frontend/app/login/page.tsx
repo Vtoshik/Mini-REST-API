@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { FormField } from "@/components/FormField";
@@ -18,7 +19,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await apiFetch("/api/v1/login", { method: "POST", body: { username, password } });
-      router.push("/dashboard");
+      router.push("/notes");
       router.refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong. Try again.");
@@ -64,9 +65,9 @@ export default function LoginPage() {
 
       <p className="mt-6 text-sm text-ink-muted">
         No account yet?{" "}
-        <a href="/register" className="text-accent underline-offset-2 hover:underline">
+        <Link href="/register" className="text-accent underline-offset-2 hover:underline">
           Create one
-        </a>
+        </Link>
       </p>
     </main>
   );

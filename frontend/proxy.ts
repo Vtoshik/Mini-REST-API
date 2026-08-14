@@ -16,7 +16,7 @@ export async function proxy(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith("/admin")) {
     const user = await res.json();
     if (user.status !== "admin") {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return NextResponse.redirect(new URL("/notes", request.url));
     }
   }
 
@@ -24,5 +24,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/notes/:path*", "/admin/:path*"],
+  matcher: ["/notes/:path*", "/admin/:path*"],
 };

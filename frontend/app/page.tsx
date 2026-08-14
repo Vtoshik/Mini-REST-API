@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { NoteCard } from "@/components/NoteCard";
 
 const SAMPLE_NOTES = [
@@ -21,18 +22,18 @@ export default function Home() {
           Every entry gets a stamp, a tab, and a place in the drawer.
         </p>
         <div className="mt-6 flex gap-3">
-          <a
+          <Link
             href="/login"
             className="rounded-sm bg-accent px-4 py-2 font-display text-sm font-medium text-paper-card transition-colors hover:bg-accent-hover"
           >
             Log in
-          </a>
-          <a
+          </Link>
+          <Link
             href="/register"
             className="rounded-sm border border-ink px-4 py-2 font-display text-sm font-medium text-ink transition-colors hover:border-accent hover:text-accent"
           >
             Create account
-          </a>
+          </Link>
         </div>
       </header>
 

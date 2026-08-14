@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { FormField } from "@/components/FormField";
@@ -87,9 +88,9 @@ export default function RegisterPage() {
 
       <p className="mt-6 text-sm text-ink-muted">
         Already have an account?{" "}
-        <a href="/login" className="text-accent underline-offset-2 hover:underline">
+        <Link href="/login" className="text-accent underline-offset-2 hover:underline">
           Sign in
-        </a>
+        </Link>
       </p>
     </main>
   );
