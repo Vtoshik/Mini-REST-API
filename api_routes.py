@@ -233,7 +233,7 @@ class Notes(Resource):
         user = authenticate_request()
         if not user:
             return {"message": "Authentication required"}, 401
-        notes = Note.query.filter_by(user_id=user.id).all()
+        notes = Note.query.filter_by(user_id=user.id).filter(Note.deleted_at.is_(None)).all()
         schema = NoteSchema(many=True)
         return schema.dump(notes), 200
 
@@ -269,7 +269,9 @@ class NoteResource(Resource):
         note = Note.query.get_or_404(note_id)
         if note.user_id != user.id:
             return {"message": "Forbidden"}, 403
-        schema = NoteSchema(); 
+        if note.deleted_at is not None:
+            abort(404)
+        schema = NoteSchema();
         return schema.dump(note), 200
 
     @jwt_required()
@@ -277,22 +279,28 @@ class NoteResource(Resource):
         user = authenticate_request()
         if not user:
             return {"message": "Authentication required"}, 401
-        
+
         note = Note.query.get_or_404(note_id)
         if note.user_id != user.id:
             return {"message": "Forbidden"}, 403
+        if note.deleted_at is not None:
+            abort(404)
 
         schema = NoteUpdateSchema(partial=True)
         try:
             data = schema.load(request.get_json())
         except ValidationError as error:
             return {"errors": error.messages}, 400
-            
+
         # Update fields from validated data
         if 'title' in data:
             note.title = data['title']
         if 'content' in data:
             note.content = data['content']
+        if 'category' in data:
+            note.category = data['category']
+        if 'pinned' in data:
+            note.pinned = data['pinned']
 
         try:
             db.session.commit()
@@ -314,18 +322,66 @@ class NoteResource(Resource):
         note = Note.query.get_or_404(note_id)
         if note.user_id != user.id:
             return {"message": "Forbidden"}, 403
+        if note.deleted_at is not None:
+            abort(404)
         try:
-            db.session.delete(note)
+            note.deleted_at = datetime.now(timezone.utc)
             db.session.commit()
-            logger.info(f"Note {note_id} deleted by user {user.id}")
-            return {"message": "Note deleted"}, 204
-        except IntegrityError:
-            db.session.rollback()
-            return {"message": "Note with this id does not exist"}, 400
+            logger.info(f"Note {note_id} moved to trash by user {user.id}")
+            return {"message": "Note moved to trash"}, 200
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Error deleting note {note_id}: {str(e)}", exc_info=True)
+            logger.error(f"Error trashing note {note_id}: {str(e)}", exc_info=True)
             return {"message": "Failed to delete note", "error": str(e)}, 500
+
+class Trash(Resource):
+    @jwt_required()
+    def get(self):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        notes = (
+            Note.query.filter_by(user_id=user.id)
+            .filter(Note.deleted_at.isnot(None))
+            .order_by(Note.deleted_at.desc())
+            .all()
+        )
+        schema = NoteSchema(many=True)
+        return schema.dump(notes), 200
+
+class NoteRestore(Resource):
+    @jwt_required()
+    def post(self, note_id):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        note = Note.query.get_or_404(note_id)
+        if note.user_id != user.id:
+            return {"message": "Forbidden"}, 403
+        if note.deleted_at is None:
+            abort(404)
+        try:
+            note.deleted_at = None
+            db.session.commit()
+            return {"message": "Note restored"}, 200
+        except IntegrityError:
+            db.session.rollback()
+            return {"message": "Note with this title already exists for this user"}, 400
+
+class NotePermanentDelete(Resource):
+    @jwt_required()
+    def delete(self, note_id):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        note = Note.query.get_or_404(note_id)
+        if note.user_id != user.id:
+            return {"message": "Forbidden"}, 403
+        if note.deleted_at is None:
+            abort(404)
+        db.session.delete(note)
+        db.session.commit()
+        return {"message": "Note permanently deleted"}, 200
 
 class Logout(Resource):
     def post(self):
@@ -432,4 +488,7 @@ api.add_resource(Users, '/api/v1/admin/users')
 api.add_resource(UserResource, '/api/v1/admin/users/<int:user_id>')
 api.add_resource(AdminPasswordReset, '/api/v1/admin/users/<int:user_id>/reset-password')
 api.add_resource(Notes, '/api/v1/notes')
+api.add_resource(Trash, '/api/v1/notes/trash')
 api.add_resource(NoteResource, '/api/v1/notes/<int:note_id>')
+api.add_resource(NoteRestore, '/api/v1/notes/<int:note_id>/restore')
+api.add_resource(NotePermanentDelete, '/api/v1/notes/<int:note_id>/permanent')

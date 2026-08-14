@@ -48,7 +48,10 @@ class NoteSchema(Schema):
     id = fields.Int(dump_only=True)
     title = fields.Str(required=True, validate=Length(max=20, error="Title max 20 chars"))
     content = fields.Str()
+    category = fields.Str(allow_none=True)
+    pinned = fields.Bool(dump_only=True)
     created_at = fields.DateTime(dump_only=True)
+    deleted_at = fields.DateTime(dump_only=True, allow_none=True)
 
 
 class NoteCreateSchema(Schema):
@@ -60,6 +63,7 @@ class NoteCreateSchema(Schema):
         ]
     )
     content = fields.Str(required=False, allow_none=True)
+    category = fields.Str(required=False, allow_none=True, validate=Length(max=30, error="Category max 30 chars"))
 
     @post_load
     def strip_whitespace(self, data, **kwargs):
@@ -67,8 +71,10 @@ class NoteCreateSchema(Schema):
             data['title'] = data['title'].strip()
         if data.get('content'):
             data['content'] = data['content'].strip()
+        if data.get('category'):
+            data['category'] = data['category'].strip()
         return data
-    
+
     class Meta:
         unknown = EXCLUDE # Ignore unknown fields like user_id
 
@@ -80,6 +86,8 @@ class NoteUpdateSchema(Schema):
         ]
     )
     content = fields.Str(allow_none=True)
+    category = fields.Str(allow_none=True, validate=Length(max=30, error="Category max 30 chars"))
+    pinned = fields.Bool()
 
     @post_load
     def strip_whitespace(self, data, **kwargs):
@@ -87,6 +95,8 @@ class NoteUpdateSchema(Schema):
             data['title'] = data['title'].strip()
         if data.get('content'):
             data['content'] = data['content'].strip()
+        if data.get('category'):
+            data['category'] = data['category'].strip()
         return data
 
     class Meta:
