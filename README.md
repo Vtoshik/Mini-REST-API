@@ -150,10 +150,7 @@ CSRF Protection: Enabled for API requests; the frontend fetches a token from /ap
 Rate Limiting: 10/min for /api/v1/login, 5/min for /api/v1/register, 200/day globally, using Redis. /api/v1/me and /api/v1/csrf-token are exempt since the frontend calls them on every navigation.
 CORS: Restricted to localhost:3000, with credentials enabled so the JWT cookie is sent cross-origin.
 
-## Known issues / future improvements
+## Future improvements
 
-- `PUT /api/v1/admin/users/<id>` lets a user edit their own record, including the `status` field — in principle a regular user could self-promote to admin via a direct API call. Not reachable through the frontend (admin pages are gated), but the backend should restrict who can change `status`.
-- JWT errors (missing/invalid token) return a generic 500 instead of a 401 across the API.
-- The pytest fixture's `SQLALCHEMY_DATABASE_URI` override doesn't take effect before `db.create_all()` runs, so the test suite currently hits whatever `DATABASE_URL` is set at import time instead of the intended in-memory SQLite.
 - Implement pagination for large note/user lists.
 - Add server-side caching (e.g., Flask-Caching) for API performance.
