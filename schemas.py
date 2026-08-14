@@ -1,15 +1,13 @@
 from marshmallow import Schema, fields, validate, ValidationError, post_load, EXCLUDE
 from marshmallow.validate import Length, Email, Regexp
 
+PASSWORD_REGEX = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_])[A-Za-z\d@$!%*?&_]{8,}$'
+PASSWORD_ERROR = "Password must be 8+ characters, including at least one uppercase letter, one lowercase letter, one digit, and one special character from @, $, !, %, *, ?, &, _"
+
 class UserRegisterSchema(Schema):
     username  = fields.Str(required=True, validate=Length(min=3, max=20, error="Username 3-20 chars"))
     email = fields.Email(required=True, validate=Length(max=255, error="Email too long"))
-    password = fields.Str(required=True,
-        validate=Regexp(
-            r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_])[A-Za-z\d@$!%*?&_]{8,}$',
-            error="Password must be 8+ characters, including at least one uppercase letter, one lowercase letter, one digit, and one special character from @, $, !, %, *, ?, &, _"
-        )
-    )
+    password = fields.Str(required=True, validate=Regexp(PASSWORD_REGEX, error=PASSWORD_ERROR))
 
     class Meta:
         unknown = EXCLUDE
@@ -26,15 +24,25 @@ class UserSchema(Schema):
     created_at = fields.DateTime(dump_only=True)
 
 class UserUpdateSchema(Schema):
+    """Admin-only update: username/email/status. Passwords go through the
+    reset-token flow (AdminPasswordReset/PasswordReset) instead of being set
+    directly here, so an admin never handles another user's plaintext password."""
     username = fields.Str(validate=Length(min=3, max=20, error="Username 3-20 chars"))
     email = fields.Email(validate=Length(max=255, error="Email too long"))
-    password = fields.Str(
-        validate=Regexp(
-            r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_])[A-Za-z\d@$!%*?&_]{8,}$',
-            error="Password must be 8+ characters, including at least one uppercase letter, one lowercase letter, one digit, and one special character"
-        )
-    )
     status = fields.Str(validate=validate.OneOf(["user", "admin"], error="Invalid status"))
+
+class SelfUpdateSchema(Schema):
+    """Self-service update via PUT /api/v1/me: username/email only."""
+    username = fields.Str(validate=Length(min=3, max=20, error="Username 3-20 chars"))
+    email = fields.Email(validate=Length(max=255, error="Email too long"))
+
+class PasswordChangeSchema(Schema):
+    current_password = fields.Str(required=True)
+    new_password = fields.Str(required=True, validate=Regexp(PASSWORD_REGEX, error=PASSWORD_ERROR))
+
+class PasswordResetSchema(Schema):
+    token = fields.Str(required=True)
+    password = fields.Str(required=True, validate=Regexp(PASSWORD_REGEX, error=PASSWORD_ERROR))
 
 class NoteSchema(Schema):
     id = fields.Int(dump_only=True)

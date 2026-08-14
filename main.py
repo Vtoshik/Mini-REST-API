@@ -15,6 +15,7 @@ from flask_wtf.csrf import CSRFProtect
 from database import db
 from models.user import User
 from models.note import Note
+from models.password_reset_token import PasswordResetToken
 from api_routes import api_bp
 from api_routes import Login, Register
 
@@ -75,6 +76,12 @@ def limited_register():
 
 app.add_url_rule('/api/v1/login', view_func=limited_login, methods=['POST'])
 app.add_url_rule('/api/v1/register', view_func=limited_register, methods=['POST'])
+
+@app.cli.command("seed-db")
+def seed_db_command():
+    """Create demo accounts and sample notes for local testing."""
+    from seed import seed
+    seed()
 
 if __name__ == "__main__":
     app.run(debug=True)

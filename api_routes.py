@@ -2,17 +2,26 @@
 from database import db
 from models.user import User
 from models.note import Note
+from models.password_reset_token import PasswordResetToken
 from flask import request, Blueprint, abort, jsonify, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_restful import Api, Resource
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity, set_access_cookies, unset_jwt_cookies
 from sqlalchemy.exc import IntegrityError
-from schemas import UserRegisterSchema, NoteSchema, UserSchema, UserUpdateSchema, LoginSchema, NoteCreateSchema, NoteUpdateSchema
+from schemas import (
+    UserRegisterSchema, NoteSchema, UserSchema, UserUpdateSchema, LoginSchema,
+    NoteCreateSchema, NoteUpdateSchema, SelfUpdateSchema, PasswordChangeSchema,
+    PasswordResetSchema,
+)
 from marshmallow import ValidationError
 import logging
+import secrets
+from datetime import datetime, timedelta, timezone
 from flask_wtf.csrf import validate_csrf, generate_csrf
 from flask_jwt_extended.exceptions import JWTExtendedException
 from jwt.exceptions import PyJWTError
+
+PASSWORD_RESET_TOKEN_LIFETIME = timedelta(hours=1)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -189,8 +198,6 @@ class UserResource(Resource):
             if user.status != 'admin':
                 return {"message": "Only admins can change account status"}, 403
             target_user.status = data['status']
-        if 'password' in data and data['password']:  # Only update if provided
-            target_user.password = generate_password_hash(data['password'])
         try:
             db.session.commit()
             return {"message": "User updated"}, 200
@@ -336,7 +343,82 @@ class Me(Resource):
         user = authenticate_request()
         if not user:
             return {"message": "Authentication required"}, 401
-        return {"id": user.id, "username": user.username, "status": user.status}, 200
+        return {"id": user.id, "username": user.username, "email": user.email, "status": user.status}, 200
+
+    @jwt_required()
+    def put(self):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        schema = SelfUpdateSchema(partial=True)
+        try:
+            data = schema.load(request.get_json())
+        except ValidationError as error:
+            return {"errors": error.messages}, 400
+        if 'username' in data:
+            user.username = data['username']
+        if 'email' in data:
+            user.email = data['email']
+        try:
+            db.session.commit()
+            return {"message": "Profile updated"}, 200
+        except IntegrityError:
+            db.session.rollback()
+            return {"message": "User with this email or username already exists."}, 400
+        except Exception as e:
+            db.session.rollback()
+            return {"message": "Server error", "error": str(e)}, 500
+
+class MePassword(Resource):
+    @jwt_required()
+    def post(self):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        schema = PasswordChangeSchema()
+        try:
+            data = schema.load(request.get_json())
+        except ValidationError as error:
+            return {"errors": error.messages}, 400
+        if not check_password_hash(user.password, data['current_password']):
+            return {"message": "Current password is incorrect"}, 400
+        user.password = generate_password_hash(data['new_password'])
+        db.session.commit()
+        return {"message": "Password updated"}, 200
+
+class AdminPasswordReset(Resource):
+    @jwt_required()
+    def post(self, user_id):
+        authenticate_and_check_admin()
+        target_user = User.query.get_or_404(user_id)
+        token = PasswordResetToken(
+            token=secrets.token_urlsafe(32),
+            user_id=target_user.id,
+            expires_at=datetime.now(timezone.utc) + PASSWORD_RESET_TOKEN_LIFETIME,
+        )
+        db.session.add(token)
+        db.session.commit()
+        return {
+            "message": "Password reset token created",
+            "reset_token": token.token,
+            "reset_path": f"/reset-password/{token.token}",
+        }, 201
+
+class PasswordReset(Resource):
+    def post(self):
+        schema = PasswordResetSchema()
+        try:
+            data = schema.load(request.get_json())
+        except ValidationError as error:
+            return {"errors": error.messages}, 400
+        token = PasswordResetToken.query.filter_by(token=data['token']).first()
+        if not token or not token.is_valid():
+            return {"message": "This reset link is invalid or has expired"}, 400
+        user = User.query.get_or_404(token.user_id)
+        user.password = generate_password_hash(data['password'])
+        token.used = True
+        db.session.commit()
+        return {"message": "Password reset successful"}, 200
 
 # Resources
 api.add_resource(Logout, '/api/v1/logout')
@@ -344,7 +426,10 @@ api.add_resource(Login, '/api/v1/login')
 api.add_resource(Register, '/api/v1/register')
 api.add_resource(CsrfToken, '/api/v1/csrf-token')
 api.add_resource(Me, '/api/v1/me')
+api.add_resource(MePassword, '/api/v1/me/password')
+api.add_resource(PasswordReset, '/api/v1/reset-password')
 api.add_resource(Users, '/api/v1/admin/users')
 api.add_resource(UserResource, '/api/v1/admin/users/<int:user_id>')
+api.add_resource(AdminPasswordReset, '/api/v1/admin/users/<int:user_id>/reset-password')
 api.add_resource(Notes, '/api/v1/notes')
 api.add_resource(NoteResource, '/api/v1/notes/<int:note_id>')
