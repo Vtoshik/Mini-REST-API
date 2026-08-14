@@ -38,7 +38,7 @@ Database: PostgreSQL with migrations managed via Flask-Migrate and Alembic.
 
 
 ### Backend:
-Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-JWT-Extended, Flask-Limiter, Flask-CORS, Flask-RESTful, Flask-Marshmallow, Flask-WTF, psycopg2-binary, python-dotenv, redis, alembic
+Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-JWT-Extended, Flask-Limiter, Flask-CORS, Flask-RESTful, Flask-Marshmallow, Flask-WTF, psycopg2-binary, python-dotenv, redis, alembic, apispec, flask-swagger-ui
 
 
 ### Frontend:
@@ -119,6 +119,10 @@ Start the frontend (from `frontend/`):
 The frontend is at http://localhost:3000 (this is what you open in a browser) and talks to the API at http://localhost:5000.
 
 ## Usage
+
+### API Documentation
+
+Interactive Swagger UI at http://localhost:5000/api/v1/docs (raw spec at `/api/v1/openapi.json`). The endpoint table below is a quick-scan reference; Swagger UI has the full request/response schemas and lets you try requests directly.
 
 ### API Endpoints
 

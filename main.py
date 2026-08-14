@@ -1,7 +1,8 @@
 # main.py
 # Libraries
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_migrate import Migrate
+from flask_swagger_ui import get_swaggerui_blueprint
 from urllib.parse import unquote
 from dotenv import load_dotenv
 import os
@@ -76,6 +77,19 @@ def limited_register():
 
 app.add_url_rule('/api/v1/login', view_func=limited_login, methods=['POST'])
 app.add_url_rule('/api/v1/register', view_func=limited_register, methods=['POST'])
+
+# API documentation: a plain route rather than a Resource on api_bp, since
+# this describes the API rather than being part of its REST surface, and
+# doesn't need the blueprint's CSRF/auth machinery.
+@app.route('/api/v1/openapi.json')
+def openapi_spec():
+    from openapi import spec
+    return jsonify(spec.to_dict())
+
+swagger_ui_bp = get_swaggerui_blueprint(
+    '/api/v1/docs', '/api/v1/openapi.json', config={'app_name': 'Mini-REST-API'}
+)
+app.register_blueprint(swagger_ui_bp, url_prefix='/api/v1/docs')
 
 @app.cli.command("seed-db")
 def seed_db_command():
