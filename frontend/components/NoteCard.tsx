@@ -11,7 +11,7 @@ function formatStamp(dateStr?: string) {
 
 export function NoteCard({ note }: { note: Note }) {
   return (
-    <article className="relative overflow-hidden rounded-sm border border-grid bg-paper-card pl-6 pr-4 py-4 shadow-[2px_2px_0_var(--grid)]">
+    <article className="relative overflow-hidden rounded-sm border border-rule bg-paper-card pl-6 pr-4 py-4 shadow-[2px_2px_0_var(--rule)]">
       <IndexTab seed={note.id} />
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="truncate font-display text-base font-bold tracking-tight text-ink">

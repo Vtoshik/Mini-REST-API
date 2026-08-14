@@ -9,7 +9,7 @@ const SAMPLE_NOTES = [
 export default function Home() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-10 px-6 py-16">
-      <header className="border-b border-grid pb-6">
+      <header className="border-b border-rule pb-6">
         <p className="font-display text-xs uppercase tracking-[0.2em] text-ink-muted">
           Drawer 01 — Notes
         </p>

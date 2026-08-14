@@ -31,7 +31,7 @@ export function FormField({
         onChange={(e) => onChange(e.target.value)}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
-        className="border-0 border-b border-grid bg-transparent px-0.5 py-2 text-ink outline-none transition-colors focus:border-b-2 focus:border-accent"
+        className="border-0 border-b-2 border-rule bg-transparent px-0.5 py-2 text-ink outline-none transition-colors focus:border-accent"
       />
       {error && (
         <p id={`${id}-error`} className="text-xs text-signal">

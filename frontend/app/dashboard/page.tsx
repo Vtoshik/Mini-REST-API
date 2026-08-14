@@ -6,7 +6,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-16">
-      <header className="flex items-start justify-between border-b border-grid pb-6">
+      <header className="flex items-start justify-between border-b border-rule pb-6">
         <div>
           <p className="font-display text-xs uppercase tracking-[0.2em] text-ink-muted">
             Drawer 01 — Notes

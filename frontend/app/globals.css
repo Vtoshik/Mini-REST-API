@@ -4,6 +4,7 @@
   --paper: #e7ebee;
   --paper-card: #f8f9f6;
   --grid: #b9c6d1;
+  --rule: #7c8ea3;
   --ink: #16202c;
   --ink-muted: #4b5a68;
   --accent: #2f5de3;
@@ -16,6 +17,7 @@
   --color-paper: var(--paper);
   --color-paper-card: var(--paper-card);
   --color-grid: var(--grid);
+  --color-rule: var(--rule);
   --color-ink: var(--ink);
   --color-ink-muted: var(--ink-muted);
   --color-accent: var(--accent);
