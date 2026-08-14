@@ -1,4 +1,7 @@
 # Mini-REST-API: Note-Taking Web Application
+
+[![CI](https://github.com/Vtoshik/Mini-REST-API/actions/workflows/ci.yml/badge.svg)](https://github.com/Vtoshik/Mini-REST-API/actions/workflows/ci.yml)
+
 ## Overview
 Mini-REST-API is a full-stack note-taking application: a Flask JSON API backend and a Next.js frontend, running as two separate servers. Users can register, log in, and manage personal notes (create, view, edit, delete), while administrators have additional privileges to manage user accounts. The application features secure authentication (JWT and CSRF protection), rate limiting, and a PostgreSQL database.
 
