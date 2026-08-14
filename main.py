@@ -1,6 +1,6 @@
 # main.py
 # Libraries
-from flask import Flask
+from flask import Flask, request
 from flask_migrate import Migrate
 from urllib.parse import unquote
 from dotenv import load_dotenv
@@ -51,6 +51,16 @@ limiter = Limiter(
     storage_uri=app.config['RATELIMIT_STORAGE_URI']  # Use Redis storage
 )
 limiter.init_app(app)
+
+# The Next.js frontend calls these on every navigation (route gating +
+# reading the current session), so they don't fit the same abuse-prevention
+# budget as credential-guessing-prone routes like login/register.
+NAVIGATION_EXEMPT_PATHS = {'/api/v1/me', '/api/v1/csrf-token'}
+
+@limiter.request_filter
+def exempt_navigation_endpoints():
+    return request.path in NAVIGATION_EXEMPT_PATHS
+
 csrf = CSRFProtect(app)
 CORS(app, resources={r"/api/v1/*": {"origins": ["http://localhost:3000", "http://localhost:5000"], "supports_credentials": True}})
 
