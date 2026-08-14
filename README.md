@@ -88,6 +88,9 @@ Initialize the database:
 - flask db migrate -m "Initial migration"
 - flask db upgrade
 
+Optionally seed demo data (admin/demo/empty accounts, demo has 15 sample notes for testing search/filter):
+- flask seed-db
+
 #### Frontend
 
 - cd frontend
@@ -117,6 +120,9 @@ The frontend is at http://localhost:3000 (this is what you open in a browser) an
 | /api/v1/register         | POST   | Register new user             | None           |
 | /api/v1/logout           | POST   | Clear the JWT cookie          | None           |
 | /api/v1/me               | GET    | Get the current user          | JWT            |
+| /api/v1/me               | PUT    | Update own username/email     | JWT            |
+| /api/v1/me/password      | POST   | Change own password (requires current password) | JWT |
+| /api/v1/reset-password   | POST   | Complete a password reset with a token | None   |
 | /api/v1/notes            | GET    | List user's notes             | JWT            |
 | /api/v1/notes            | POST   | Create a new note             | JWT            |
 | /api/v1/notes/<id>       | GET    | Get note details               | JWT (owner)    |
@@ -125,8 +131,9 @@ The frontend is at http://localhost:3000 (this is what you open in a browser) an
 | /api/v1/admin/users      | GET    | List all users                 | JWT (admin)    |
 | /api/v1/admin/users      | POST   | Create a user                  | JWT (admin)    |
 | /api/v1/admin/users/<id> | GET    | Get user details               | JWT (admin)    |
-| /api/v1/admin/users/<id> | PUT    | Update user                    | JWT (admin or self) |
+| /api/v1/admin/users/<id> | PUT    | Update username/email/status   | JWT (admin or self for username/email; admin only for status) |
 | /api/v1/admin/users/<id> | DELETE | Delete user                    | JWT (admin)    |
+| /api/v1/admin/users/<id>/reset-password | POST | Create a password reset link for a user | JWT (admin) |
 
 ### Frontend Routes
 
@@ -138,9 +145,11 @@ The frontend is at http://localhost:3000 (this is what you open in a browser) an
 | /notes         | Notes dashboard (requires authentication)  |
 | /notes/new     | Create a note                              |
 | /notes/<id>    | View/edit/delete a note                    |
+| /account       | Self-service profile and password change (requires authentication) |
 | /admin         | User list (admin-only)                     |
 | /admin/new     | Create a user (admin-only)                 |
 | /admin/<id>    | View/edit/delete a user (admin-only)       |
+| /reset-password/<token> | Complete a password reset (public)   |
 
 
 ## Security
