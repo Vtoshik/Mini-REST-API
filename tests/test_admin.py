@@ -37,6 +37,20 @@ def test_create_user_requires_admin(client, auth_headers):
     assert response.status_code == 403
 
 
+def test_admin_created_user_can_log_in_immediately(client, admin_headers):
+    # Admin-created accounts have no verification link issued for them, so
+    # they must be auto-verified — otherwise they'd be locked out forever.
+    client.post(
+        '/api/v1/admin/users',
+        json={"username": "created", "email": "created@example.com", "password": "Str0ng@Pass"},
+        headers=admin_headers,
+    )
+    response = client.post(
+        '/api/v1/login', json={"username": "created", "password": "Str0ng@Pass"}
+    )
+    assert response.status_code == 200
+
+
 def test_create_user_duplicate(client, admin_headers):
     client.post(
         '/api/v1/admin/users',

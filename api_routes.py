@@ -191,6 +191,10 @@ class Users(Resource):
             return {"message": "User with this email or username already exists."}, 400
         hashed_password = generate_password_hash(data['password'])
         new_user = User(username=data['username'], email=data['email'], password=hashed_password)
+        # Admin vouches for the email directly here, unlike self-registration
+        # — there's no verification link issued on this path, so leaving
+        # email_verified False would lock the account out permanently.
+        new_user.email_verified = True
         try:
             db.session.add(new_user)
             db.session.commit()
