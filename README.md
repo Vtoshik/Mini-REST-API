@@ -46,7 +46,7 @@ Next.js (App Router), TypeScript, Tailwind CSS, next/font (JetBrains Mono + Inte
 
 
 ### Testing:
-pytest
+pytest (backend), Vitest + React Testing Library (frontend)
 
 
 ### Package Manager:
@@ -105,6 +105,7 @@ Optionally seed demo data (admin/demo/empty accounts, demo has 15 sample notes f
 - cd frontend
 - npm install
 - Optionally set NEXT_PUBLIC_API_URL if the backend isn't at http://localhost:5000
+- npm run test to run the frontend test suite (Vitest + React Testing Library)
 
 
 ## Running the Application
