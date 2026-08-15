@@ -97,5 +97,15 @@ def seed_db_command():
     from seed import seed
     seed()
 
+@app.cli.command("cleanup-tokens")
+def cleanup_tokens_command():
+    """Delete used or expired password reset tokens. Safe to run on a schedule."""
+    from datetime import datetime, timezone
+    deleted = PasswordResetToken.query.filter(
+        db.or_(PasswordResetToken.used.is_(True), PasswordResetToken.expires_at < datetime.now(timezone.utc))
+    ).delete(synchronize_session=False)
+    db.session.commit()
+    print(f"Deleted {deleted} stale password reset token(s).")
+
 if __name__ == "__main__":
     app.run(debug=True)
