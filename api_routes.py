@@ -22,6 +22,8 @@ from flask_jwt_extended.exceptions import JWTExtendedException
 from jwt.exceptions import PyJWTError
 
 PASSWORD_RESET_TOKEN_LIFETIME = timedelta(hours=1)
+LOGIN_LOCKOUT_THRESHOLD = 5
+LOGIN_LOCKOUT_DURATION = timedelta(minutes=15)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -55,6 +57,14 @@ def authenticate_request():
         return None
     return user
 
+def _is_locked(user):
+    locked_until = user.locked_until
+    if not locked_until:
+        return False
+    if locked_until.tzinfo is None:
+        locked_until = locked_until.replace(tzinfo=timezone.utc)
+    return locked_until > datetime.now(timezone.utc)
+
 def authenticate_and_check_admin():
     user = authenticate_request()
     if not user or user.status != 'admin':
@@ -80,13 +90,26 @@ class Login(Resource):
         except ValidationError as error:
             return {"error": "validation_error", "message": error.messages, "code": 400}, 400
         user = User.query.filter_by(username=data['username']).first()
+
+        if user and _is_locked(user):
+            return {"message": "Account temporarily locked after too many failed attempts. Try again later."}, 423
+
         if user and check_password_hash(user.password, data['password']):
+            user.failed_login_attempts = 0
+            user.locked_until = None
+            db.session.commit()
             access_token = create_access_token(identity=str(user.id))
             logger.debug(f"Login successful for user {data['username']}, token created")
             response = jsonify({"message": "Login successful", 'user_id': user.id, 'user_status': user.status})
             set_access_cookies(response, access_token)
             flask_response = make_response(response)
             return flask_response
+
+        if user:
+            user.failed_login_attempts += 1
+            if user.failed_login_attempts >= LOGIN_LOCKOUT_THRESHOLD:
+                user.locked_until = datetime.now(timezone.utc) + LOGIN_LOCKOUT_DURATION
+            db.session.commit()
         return {"message": "Invalid credentials"}, 401
 
            

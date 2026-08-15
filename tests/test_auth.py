@@ -85,6 +85,45 @@ def test_login_missing_fields(client):
     assert response.status_code == 400
 
 
+def test_login_locks_account_after_repeated_failures(client, make_user):
+    make_user(username="loginuser", email="login@example.com", password="Test@1234")
+    for _ in range(5):
+        response = client.post(
+            '/api/v1/login', json={"username": "loginuser", "password": "WrongPass@1"}
+        )
+        assert response.status_code == 401
+
+    # 6th attempt, even with the correct password, is locked out.
+    response = client.post(
+        '/api/v1/login', json={"username": "loginuser", "password": "Test@1234"}
+    )
+    assert response.status_code == 423
+
+
+def test_login_before_lockout_threshold_still_works(client, make_user):
+    make_user(username="loginuser", email="login@example.com", password="Test@1234")
+    for _ in range(4):
+        client.post('/api/v1/login', json={"username": "loginuser", "password": "WrongPass@1"})
+
+    response = client.post(
+        '/api/v1/login', json={"username": "loginuser", "password": "Test@1234"}
+    )
+    assert response.status_code == 200
+
+
+def test_successful_login_resets_failed_attempt_counter(client, make_user):
+    from main import app, db
+    from models.user import User
+
+    user_id = make_user(username="loginuser", email="login@example.com", password="Test@1234")
+    for _ in range(3):
+        client.post('/api/v1/login', json={"username": "loginuser", "password": "WrongPass@1"})
+    client.post('/api/v1/login', json={"username": "loginuser", "password": "Test@1234"})
+
+    with app.app_context():
+        assert User.query.get(user_id).failed_login_attempts == 0
+
+
 def test_logout_clears_cookie(client):
     response = client.post('/api/v1/logout')
     assert response.status_code == 200

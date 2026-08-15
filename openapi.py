@@ -98,6 +98,7 @@ spec.path(
             "responses": {
                 200: _json(description="Login successful"),
                 401: _json(description="Invalid credentials"),
+                423: _json(description="Account temporarily locked after too many failed attempts"),
             },
         }
     },

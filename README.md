@@ -177,7 +177,8 @@ Interactive Swagger UI at http://localhost:5000/api/v1/docs (raw spec at `/api/v
 
 JWT Authentication: Tokens stored in an httpOnly cookie, validated for protected routes.
 CSRF Protection: Enabled for API requests; the frontend fetches a token from /api/v1/csrf-token and sends it back as an X-CSRF-Token header on writes.
-Rate Limiting: 10/min for /api/v1/login, 5/min for /api/v1/register, 200/day globally, using Redis. /api/v1/me and /api/v1/csrf-token are exempt since the frontend calls them on every navigation.
+Rate Limiting: 10/min for /api/v1/login, 5/min for /api/v1/register, 200/day globally (Redis-backed if REDIS_URL is set, otherwise falls back to in-memory storage). /api/v1/me and /api/v1/csrf-token are exempt since the frontend calls them on every navigation.
+Account Lockout: after 5 failed login attempts for a given account, it's locked for 15 minutes (returns 423), independent of the IP-based rate limit above.
 CORS: Restricted to localhost:3000, with credentials enabled so the JWT cookie is sent cross-origin.
 
 ## Future improvements
