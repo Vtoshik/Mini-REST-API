@@ -43,23 +43,18 @@ def test_login_schema_requires_username_and_password():
         schema.load({"username": "valid"})
 
 
-def test_note_create_schema_strips_whitespace_from_content_and_category():
-    # Note: title itself can't reach the strip step with surrounding
-    # whitespace — its Regexp validator (`^\S.*\S$`) rejects leading/trailing
-    # whitespace during field deserialization, before @post_load runs. So
-    # the strip_whitespace hook only ever has an effect on content/category.
-    # See product_roadmap.md backlog for a note on tidying this up.
+def test_note_create_schema_strips_whitespace_from_all_fields():
     schema = NoteCreateSchema()
-    data = schema.load({"title": "Title", "content": "  Body  ", "category": "  Work  "})
+    data = schema.load({"title": "  Title  ", "content": "  Body  ", "category": "  Work  "})
     assert data["title"] == "Title"
     assert data["content"] == "Body"
     assert data["category"] == "Work"
 
 
-def test_note_create_schema_rejects_leading_or_trailing_whitespace_in_title():
+def test_note_create_schema_rejects_whitespace_only_title_even_after_stripping():
     schema = NoteCreateSchema()
     with pytest.raises(ValidationError):
-        schema.load({"title": "  Title  ", "content": "Body"})
+        schema.load({"title": "     ", "content": "Body"})
 
 
 def test_note_create_schema_rejects_whitespace_only_title():

@@ -1,4 +1,4 @@
-from marshmallow import Schema, fields, validate, ValidationError, post_load, EXCLUDE
+from marshmallow import Schema, fields, validate, ValidationError, pre_load, EXCLUDE
 from marshmallow.validate import Length, Email, Regexp
 
 PASSWORD_REGEX = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_])[A-Za-z\d@$!%*?&_]{8,}$'
@@ -68,15 +68,18 @@ class NoteCreateSchema(Schema):
     content = fields.Str(required=False, allow_none=True, validate=Length(max=20000, error="Content max 20000 chars"))
     category = fields.Str(required=False, allow_none=True, validate=Length(max=30, error="Category max 30 chars"))
 
-    @post_load
+    @pre_load
     def strip_whitespace(self, data, **kwargs):
-        if data.get('title'):
-            data['title'] = data['title'].strip()
-        if data.get('content'):
-            data['content'] = data['content'].strip()
-        if data.get('category'):
-            data['category'] = data['category'].strip()
-        return data
+        # Runs before field validation (unlike @post_load), so a title with
+        # surrounding whitespace gets trimmed instead of being rejected by
+        # the title Regexp validator before it ever reaches here.
+        if not isinstance(data, dict):
+            return data
+        stripped = dict(data)
+        for field in ('title', 'content', 'category'):
+            if isinstance(stripped.get(field), str):
+                stripped[field] = stripped[field].strip()
+        return stripped
 
     class Meta:
         unknown = EXCLUDE # Ignore unknown fields like user_id
@@ -92,15 +95,18 @@ class NoteUpdateSchema(Schema):
     category = fields.Str(allow_none=True, validate=Length(max=30, error="Category max 30 chars"))
     pinned = fields.Bool()
 
-    @post_load
+    @pre_load
     def strip_whitespace(self, data, **kwargs):
-        if data.get('title'):
-            data['title'] = data['title'].strip()
-        if data.get('content'):
-            data['content'] = data['content'].strip()
-        if data.get('category'):
-            data['category'] = data['category'].strip()
-        return data
+        # Runs before field validation (unlike @post_load), so a title with
+        # surrounding whitespace gets trimmed instead of being rejected by
+        # the title Regexp validator before it ever reaches here.
+        if not isinstance(data, dict):
+            return data
+        stripped = dict(data)
+        for field in ('title', 'content', 'category'):
+            if isinstance(stripped.get(field), str):
+                stripped[field] = stripped[field].strip()
+        return stripped
 
     class Meta:
         unknown = EXCLUDE
