@@ -216,6 +216,10 @@ class UserResource(Resource):
         if user.status != 'admin':
             return {"message": "Admin access required"}, 403
         target_user = User.query.get_or_404(user_id)
+        if target_user.id == user.id:
+            return {"message": "You cannot delete your own account"}, 400
+        if target_user.status == 'admin' and User.query.filter_by(status='admin').count() <= 1:
+            return {"message": "Cannot delete the last remaining admin account"}, 400
         try:
             db.session.delete(target_user)
             db.session.commit()
@@ -447,6 +451,10 @@ class AdminPasswordReset(Resource):
     def post(self, user_id):
         authenticate_and_check_admin()
         target_user = User.query.get_or_404(user_id)
+        # Drop this user's previous unused tokens rather than letting one
+        # pile up per reset request — old ones are useless once a fresh
+        # token is issued anyway.
+        PasswordResetToken.query.filter_by(user_id=target_user.id, used=False).delete()
         token = PasswordResetToken(
             token=secrets.token_urlsafe(32),
             user_id=target_user.id,

@@ -133,11 +133,36 @@ def test_delete_user_not_found(client, admin_headers):
     assert response.status_code == 404
 
 
-def test_admin_can_delete_own_account(client, admin_headers):
-    # Known gap (tracked in the product roadmap backlog): no self-delete or
-    # last-admin guard yet, so this currently succeeds and locks out admin
-    # user-management. This test documents current behavior; flip the
-    # assertion to 400/403 once that guard is added.
+def test_admin_cannot_delete_own_account(client, admin_headers):
     me = client.get('/api/v1/me', headers=admin_headers).json
     response = client.delete(f"/api/v1/admin/users/{me['id']}", headers=admin_headers)
+    assert response.status_code == 400
+    with app.app_context():
+        assert User.query.get(me['id']) is not None
+
+
+def test_cannot_delete_the_last_remaining_admin(client, admin_headers, make_user):
+    # A second admin deletes the first: allowed, since another admin remains.
+    second_admin_id = make_user(username="secondadmin", email="second@example.com", status="admin")
+    from flask_jwt_extended import create_access_token
+    with app.app_context():
+        token = create_access_token(identity=str(second_admin_id))
+    csrf = client.get('/api/v1/csrf-token').json['csrf_token']
+    second_admin_headers = {"Authorization": f"Bearer {token}", "X-CSRF-Token": csrf}
+
+    me = client.get('/api/v1/me', headers=admin_headers).json
+    response = client.delete(f"/api/v1/admin/users/{me['id']}", headers=second_admin_headers)
+    assert response.status_code == 200
+
+    # Now only one admin (second_admin) is left — deleting them should be blocked.
+    me2 = client.get('/api/v1/me', headers=second_admin_headers).json
+    response = client.delete(f"/api/v1/admin/users/{me2['id']}", headers=second_admin_headers)
+    assert response.status_code == 400
+    with app.app_context():
+        assert User.query.get(second_admin_id) is not None
+
+
+def test_admin_can_delete_a_non_admin_user(client, admin_headers, make_user):
+    target_id = make_user(username="target", email="target@example.com")
+    response = client.delete(f'/api/v1/admin/users/{target_id}', headers=admin_headers)
     assert response.status_code == 200
