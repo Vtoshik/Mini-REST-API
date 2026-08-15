@@ -55,6 +55,11 @@ def test_create_note_with_category(client, auth_headers):
     assert response.status_code == 201
 
 
+def test_create_note_content_too_long(client, auth_headers):
+    response = create_note(client, auth_headers, content="x" * 20001)
+    assert response.status_code == 400
+
+
 def test_create_note_category_too_long(client, auth_headers):
     response = create_note(client, auth_headers, category="x" * 31)
     assert response.status_code == 400

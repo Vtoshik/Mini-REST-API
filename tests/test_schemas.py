@@ -74,6 +74,18 @@ def test_note_create_schema_rejects_title_over_20_chars():
         schema.load({"title": "x" * 21, "content": "Body"})
 
 
+def test_note_create_schema_rejects_content_over_20000_chars():
+    schema = NoteCreateSchema()
+    with pytest.raises(ValidationError):
+        schema.load({"title": "Ok", "content": "x" * 20001})
+
+
+def test_note_create_schema_accepts_content_at_20000_chars():
+    schema = NoteCreateSchema()
+    data = schema.load({"title": "Ok", "content": "x" * 20000})
+    assert len(data["content"]) == 20000
+
+
 def test_note_create_schema_ignores_unknown_fields():
     schema = NoteCreateSchema()
     data = schema.load({"title": "Ok", "content": "Body", "user_id": 99})

@@ -62,7 +62,7 @@ class NoteCreateSchema(Schema):
             Regexp(r'^\S.*\S$', error="Title cannot be empty or whitespace-only")
         ]
     )
-    content = fields.Str(required=False, allow_none=True)
+    content = fields.Str(required=False, allow_none=True, validate=Length(max=20000, error="Content max 20000 chars"))
     category = fields.Str(required=False, allow_none=True, validate=Length(max=30, error="Category max 30 chars"))
 
     @post_load
@@ -85,7 +85,7 @@ class NoteUpdateSchema(Schema):
             Regexp(r'^\S.*\S$', error="Title cannot be empty or whitespace-only")
         ]
     )
-    content = fields.Str(allow_none=True)
+    content = fields.Str(allow_none=True, validate=Length(max=20000, error="Content max 20000 chars"))
     category = fields.Str(allow_none=True, validate=Length(max=30, error="Category max 30 chars"))
     pinned = fields.Bool()
 
