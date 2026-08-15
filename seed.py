@@ -34,6 +34,7 @@ def _seed_user(username, email, password, status="user"):
         return existing
     user = User(username=username, email=email, password=generate_password_hash(password))
     user.status = status
+    user.email_verified = True
     db.session.add(user)
     db.session.commit()
     print(f"  {username}: created ({status})")

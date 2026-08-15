@@ -17,6 +17,8 @@ def test_register_success(client, csrf_token):
     response = register(client, csrf_token)
     assert response.status_code == 201
     assert "user_id" in response.json
+    assert "verify_token" in response.json
+    assert response.json['verify_path'] == f"/verify-email/{response.json['verify_token']}"
 
 
 def test_register_duplicate_username(client, csrf_token, make_user):

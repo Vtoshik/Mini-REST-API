@@ -134,7 +134,8 @@ Interactive Swagger UI at http://localhost:5000/api/v1/docs (raw spec at `/api/v
 |--------------------------|--------|-------------------------------|----------------|
 | /api/v1/csrf-token       | GET    | Get a CSRF token for the session | None        |
 | /api/v1/login            | POST   | Authenticate user, return JWT | None           |
-| /api/v1/register         | POST   | Register new user             | None           |
+| /api/v1/register         | POST   | Register new user (returns a verification link — no email service configured) | None |
+| /api/v1/verify-email     | POST   | Verify an email address with a registration token | None |
 | /api/v1/logout           | POST   | Clear the JWT cookie          | None           |
 | /api/v1/me               | GET    | Get the current user          | JWT            |
 | /api/v1/me               | PUT    | Update own username/email     | JWT            |
@@ -171,6 +172,7 @@ Interactive Swagger UI at http://localhost:5000/api/v1/docs (raw spec at `/api/v
 | /admin/new     | Create a user (admin-only)                 |
 | /admin/<id>    | View/edit/delete a user (admin-only)       |
 | /reset-password/<token> | Complete a password reset (public)   |
+| /verify-email/<token> | Verify a new account's email (public)  |
 
 
 ## Security
@@ -179,6 +181,7 @@ JWT Authentication: Tokens stored in an httpOnly cookie, validated for protected
 CSRF Protection: Enabled for API requests; the frontend fetches a token from /api/v1/csrf-token and sends it back as an X-CSRF-Token header on writes.
 Rate Limiting: 10/min for /api/v1/login, 5/min for /api/v1/register, 200/day globally (Redis-backed if REDIS_URL is set, otherwise falls back to in-memory storage). /api/v1/me and /api/v1/csrf-token are exempt since the frontend calls them on every navigation.
 Account Lockout: after 5 failed login attempts for a given account, it's locked for 15 minutes (returns 423), independent of the IP-based rate limit above.
+Email Verification: new accounts can't log in until their email is verified. Since no email service is configured, POST /api/v1/register returns the verification link directly instead of emailing it — a real deployment would email it.
 CORS: Restricted to localhost:3000, with credentials enabled so the JWT cookie is sent cross-origin.
 
 ## Future improvements

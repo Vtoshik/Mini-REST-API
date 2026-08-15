@@ -3,6 +3,7 @@ from database import db
 from models.user import User
 from models.note import Note
 from models.password_reset_token import PasswordResetToken
+from models.email_verification_token import EmailVerificationToken
 from flask import request, Blueprint, abort, jsonify, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_restful import Api, Resource
@@ -11,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from schemas import (
     UserRegisterSchema, NoteSchema, UserSchema, UserUpdateSchema, LoginSchema,
     NoteCreateSchema, NoteUpdateSchema, SelfUpdateSchema, PasswordChangeSchema,
-    PasswordResetSchema,
+    PasswordResetSchema, EmailVerificationSchema,
 )
 from marshmallow import ValidationError
 import logging
@@ -22,6 +23,7 @@ from flask_jwt_extended.exceptions import JWTExtendedException
 from jwt.exceptions import PyJWTError
 
 PASSWORD_RESET_TOKEN_LIFETIME = timedelta(hours=1)
+EMAIL_VERIFICATION_TOKEN_LIFETIME = timedelta(hours=24)
 LOGIN_LOCKOUT_THRESHOLD = 5
 LOGIN_LOCKOUT_DURATION = timedelta(minutes=15)
 
@@ -31,7 +33,7 @@ logger = logging.getLogger(__name__)
 api_bp = Blueprint('api_bp', __name__)
 api = Api(api_bp)
 
-CSRF_EXEMPT_ENDPOINTS = {'api_bp.login', 'api_bp.register', 'api_bp.logout'}
+CSRF_EXEMPT_ENDPOINTS = {'api_bp.login', 'api_bp.register', 'api_bp.logout', 'api_bp.verifyemail'}
 
 @api_bp.before_request
 def check_csrf_token():
@@ -95,6 +97,8 @@ class Login(Resource):
             return {"message": "Account temporarily locked after too many failed attempts. Try again later."}, 423
 
         if user and check_password_hash(user.password, data['password']):
+            if not user.email_verified:
+                return {"message": "Please verify your email before logging in."}, 403
             user.failed_login_attempts = 0
             user.locked_until = None
             db.session.commit()
@@ -131,13 +135,29 @@ class Register(Resource):
         try:
             db.session.add(user)
             db.session.commit()
-            return {"message": "User created successfully", "user_id": user.id}, 201
         except IntegrityError:
             db.session.rollback()
             return {"message": "User with this email or username already exists."}, 400
         except Exception as e:
             db.session.rollback()
             return {"message": "Server error"}, 500
+
+        # No email service is configured, so — same as the admin password
+        # reset flow — the verification link is returned directly rather
+        # than emailed. A real deployment would email this instead.
+        verify_token = EmailVerificationToken(
+            token=secrets.token_urlsafe(32),
+            user_id=user.id,
+            expires_at=datetime.now(timezone.utc) + EMAIL_VERIFICATION_TOKEN_LIFETIME,
+        )
+        db.session.add(verify_token)
+        db.session.commit()
+        return {
+            "message": "User created successfully",
+            "user_id": user.id,
+            "verify_token": verify_token.token,
+            "verify_path": f"/verify-email/{verify_token.token}",
+        }, 201
 
 
 class Users(Resource):
@@ -507,6 +527,22 @@ class PasswordReset(Resource):
         db.session.commit()
         return {"message": "Password reset successful"}, 200
 
+class VerifyEmail(Resource):
+    def post(self):
+        schema = EmailVerificationSchema()
+        try:
+            data = schema.load(request.get_json())
+        except ValidationError as error:
+            return {"errors": error.messages}, 400
+        token = EmailVerificationToken.query.filter_by(token=data['token']).first()
+        if not token or not token.is_valid():
+            return {"message": "This verification link is invalid or has expired"}, 400
+        user = User.query.get_or_404(token.user_id)
+        user.email_verified = True
+        token.used = True
+        db.session.commit()
+        return {"message": "Email verified"}, 200
+
 # Resources
 api.add_resource(Logout, '/api/v1/logout')
 api.add_resource(Login, '/api/v1/login')
@@ -515,6 +551,7 @@ api.add_resource(CsrfToken, '/api/v1/csrf-token')
 api.add_resource(Me, '/api/v1/me')
 api.add_resource(MePassword, '/api/v1/me/password')
 api.add_resource(PasswordReset, '/api/v1/reset-password')
+api.add_resource(VerifyEmail, '/api/v1/verify-email')
 api.add_resource(Users, '/api/v1/admin/users')
 api.add_resource(UserResource, '/api/v1/admin/users/<int:user_id>')
 api.add_resource(AdminPasswordReset, '/api/v1/admin/users/<int:user_id>/reset-password')

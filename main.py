@@ -104,13 +104,19 @@ def seed_db_command():
 
 @app.cli.command("cleanup-tokens")
 def cleanup_tokens_command():
-    """Delete used or expired password reset tokens. Safe to run on a schedule."""
+    """Delete used or expired password reset / email verification tokens. Safe to run on a schedule."""
     from datetime import datetime, timezone
-    deleted = PasswordResetToken.query.filter(
-        db.or_(PasswordResetToken.used.is_(True), PasswordResetToken.expires_at < datetime.now(timezone.utc))
+    from models.email_verification_token import EmailVerificationToken
+    now = datetime.now(timezone.utc)
+    deleted_reset = PasswordResetToken.query.filter(
+        db.or_(PasswordResetToken.used.is_(True), PasswordResetToken.expires_at < now)
+    ).delete(synchronize_session=False)
+    deleted_verify = EmailVerificationToken.query.filter(
+        db.or_(EmailVerificationToken.used.is_(True), EmailVerificationToken.expires_at < now)
     ).delete(synchronize_session=False)
     db.session.commit()
-    print(f"Deleted {deleted} stale password reset token(s).")
+    print(f"Deleted {deleted_reset} stale password reset token(s).")
+    print(f"Deleted {deleted_verify} stale email verification token(s).")
 
 if __name__ == "__main__":
     app.run(debug=True)

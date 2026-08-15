@@ -13,6 +13,7 @@ class User(db.Model):
     status = db.Column(db.String(20), nullable = False, default = "user")
     failed_login_attempts = db.Column(db.Integer, nullable=False, default=0)
     locked_until = db.Column(db.DateTime, nullable=True)
+    email_verified = db.Column(db.Boolean, nullable=False, default=False)
     notes = db.relationship('Note', backref='user', lazy=True, cascade='all, delete-orphan')
 
     def __init__(self, username, email, password):

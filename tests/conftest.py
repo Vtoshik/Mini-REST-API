@@ -39,9 +39,13 @@ def client():
             db.drop_all()
 
 
-def _make_user(username, email, password, status="user"):
+def _make_user(username, email, password, status="user", email_verified=True):
     user = User(username=username, email=email, password=generate_password_hash(password))
     user.status = status
+    # Defaults to verified since most tests care about auth/notes/admin
+    # behavior, not the registration/verification flow itself — pass
+    # email_verified=False explicitly to test that flow.
+    user.email_verified = email_verified
     db.session.add(user)
     db.session.commit()
     return user
@@ -50,9 +54,9 @@ def _make_user(username, email, password, status="user"):
 @pytest.fixture
 def make_user(client):
     """Factory fixture: create a user directly in the DB (bypasses the API)."""
-    def _factory(username="testuser", email="test@example.com", password="Test@1234", status="user"):
+    def _factory(username="testuser", email="test@example.com", password="Test@1234", status="user", email_verified=True):
         with app.app_context():
-            return _make_user(username, email, password, status).id
+            return _make_user(username, email, password, status, email_verified).id
     return _factory
 
 

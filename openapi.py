@@ -10,7 +10,7 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 
 from schemas import (
     UserRegisterSchema, LoginSchema, UserSchema, UserUpdateSchema,
-    SelfUpdateSchema, PasswordChangeSchema, PasswordResetSchema,
+    SelfUpdateSchema, PasswordChangeSchema, PasswordResetSchema, EmailVerificationSchema,
     NoteSchema, NoteCreateSchema, NoteUpdateSchema,
 )
 
@@ -48,6 +48,7 @@ for name, schema in [
     ("SelfUpdate", SelfUpdateSchema),
     ("PasswordChange", PasswordChangeSchema),
     ("PasswordReset", PasswordResetSchema),
+    ("EmailVerification", EmailVerificationSchema),
     ("Note", NoteSchema),
     ("NoteCreate", NoteCreateSchema),
     ("NoteUpdate", NoteUpdateSchema),
@@ -80,9 +81,29 @@ spec.path(
             "summary": "Register a new user",
             "tags": ["Auth"],
             "requestBody": {"content": {"application/json": {"schema": UserRegisterSchema}}},
+            "description": (
+                "No email service is configured, so the response includes a verify_token/"
+                "verify_path directly rather than emailing it. The account can't log in until "
+                "POST /api/v1/verify-email is called with that token."
+            ),
             "responses": {
-                201: _json(description="User created"),
+                201: _json(description="User created (unverified)"),
                 400: _json(description="Validation error or username/email taken"),
+            },
+        }
+    },
+)
+
+spec.path(
+    path="/api/v1/verify-email",
+    operations={
+        "post": {
+            "summary": "Verify an email address with a registration token",
+            "tags": ["Auth"],
+            "requestBody": {"content": {"application/json": {"schema": EmailVerificationSchema}}},
+            "responses": {
+                200: _json(description="Email verified"),
+                400: _json(description="Token invalid, expired, or already used"),
             },
         }
     },
@@ -98,6 +119,7 @@ spec.path(
             "responses": {
                 200: _json(description="Login successful"),
                 401: _json(description="Invalid credentials"),
+                403: _json(description="Email not yet verified"),
                 423: _json(description="Account temporarily locked after too many failed attempts"),
             },
         }

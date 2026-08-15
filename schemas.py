@@ -44,6 +44,9 @@ class PasswordResetSchema(Schema):
     token = fields.Str(required=True)
     password = fields.Str(required=True, validate=Regexp(PASSWORD_REGEX, error=PASSWORD_ERROR))
 
+class EmailVerificationSchema(Schema):
+    token = fields.Str(required=True)
+
 class NoteSchema(Schema):
     id = fields.Int(dump_only=True)
     title = fields.Str(required=True, validate=Length(max=20, error="Title max 20 chars"))
