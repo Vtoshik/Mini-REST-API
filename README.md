@@ -100,6 +100,9 @@ Initialize the database:
 Optionally seed demo data (admin/demo/empty accounts, demo has 15 sample notes for testing search/filter):
 - flask seed-db
 
+Periodically purge used/expired password reset tokens (safe to run on a schedule, e.g. a daily cron):
+- flask cleanup-tokens
+
 #### Frontend
 
 - cd frontend

@@ -39,7 +39,12 @@ app.config['JWT_COOKIE_SECURE'] = False
 app.config['JWT_ACCESS_COOKIE_PATH'] = '/'
 app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
-app.config['RATELIMIT_STORAGE_URI'] = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+# Falls back to in-memory storage (single-process only, resets on restart)
+# when REDIS_URL isn't set, so the app degrades gracefully instead of every
+# request 500ing because Limiter can't reach a Redis it was never told to
+# expect. Set REDIS_URL explicitly for multi-process/production deployments,
+# where in-memory storage wouldn't share limits across workers.
+app.config['RATELIMIT_STORAGE_URI'] = os.environ.get('REDIS_URL', 'memory://')
 app.config['WTF_CSRF_ENABLED'] = True
 
 db.init_app(app)
