@@ -4,6 +4,7 @@ from models.user import User
 from models.note import Note
 from models.password_reset_token import PasswordResetToken
 from models.email_verification_token import EmailVerificationToken
+from models.audit_log import AuditLog
 from flask import request, Blueprint, abort, jsonify, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_restful import Api, Resource
@@ -12,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from schemas import (
     UserRegisterSchema, NoteSchema, UserSchema, UserUpdateSchema, LoginSchema,
     NoteCreateSchema, NoteUpdateSchema, SelfUpdateSchema, PasswordChangeSchema,
-    PasswordResetSchema, EmailVerificationSchema,
+    PasswordResetSchema, EmailVerificationSchema, AuditLogSchema,
 )
 from marshmallow import ValidationError
 import logging
@@ -224,6 +225,8 @@ class Users(Resource):
         new_user.email_verified = True
         try:
             db.session.add(new_user)
+            db.session.flush()
+            db.session.add(AuditLog(user, "user_created", "user", new_user.id, new_user.username))
             db.session.commit()
             return {"message": "User created successfully", "user_id": new_user.id}, 201
         except IntegrityError:
@@ -273,6 +276,10 @@ class UserResource(Resource):
                 return {"message": "Only admins can change account status"}, 403
             target_user.status = data['status']
         try:
+            if user.status == 'admin' and data:
+                db.session.add(AuditLog(
+                    user, "user_updated", "user", target_user.id, ", ".join(sorted(data.keys()))
+                ))
             db.session.commit()
             return {"message": "User updated"}, 200
         except IntegrityError:
@@ -295,6 +302,7 @@ class UserResource(Resource):
         if target_user.status == 'admin' and User.query.filter_by(status='admin').count() <= 1:
             return {"message": "Cannot delete the last remaining admin account"}, 400
         try:
+            db.session.add(AuditLog(user, "user_deleted", "user", target_user.id, target_user.username))
             db.session.delete(target_user)
             db.session.commit()
             return {"message": "User deleted"}, 200
@@ -524,7 +532,7 @@ class MePassword(Resource):
 class AdminPasswordReset(Resource):
     @jwt_required()
     def post(self, user_id):
-        authenticate_and_check_admin()
+        admin = authenticate_and_check_admin()
         target_user = User.query.get_or_404(user_id)
         # Drop this user's previous unused tokens rather than letting one
         # pile up per reset request — old ones are useless once a fresh
@@ -536,6 +544,9 @@ class AdminPasswordReset(Resource):
             expires_at=datetime.now(timezone.utc) + PASSWORD_RESET_TOKEN_LIFETIME,
         )
         db.session.add(token)
+        db.session.add(AuditLog(
+            admin, "password_reset_issued", "user", target_user.id, target_user.username
+        ))
         db.session.commit()
         return {
             "message": "Password reset token created",
@@ -575,6 +586,13 @@ class VerifyEmail(Resource):
         db.session.commit()
         return {"message": "Email verified"}, 200
 
+class AdminAuditLog(Resource):
+    @jwt_required()
+    def get(self):
+        authenticate_and_check_admin()
+        query = AuditLog.query.order_by(AuditLog.created_at.desc())
+        return paginate_query(query, AuditLogSchema(many=True)), 200
+
 # Resources
 api.add_resource(Logout, '/api/v1/logout')
 api.add_resource(Login, '/api/v1/login')
@@ -587,6 +605,7 @@ api.add_resource(VerifyEmail, '/api/v1/verify-email')
 api.add_resource(Users, '/api/v1/admin/users')
 api.add_resource(UserResource, '/api/v1/admin/users/<int:user_id>')
 api.add_resource(AdminPasswordReset, '/api/v1/admin/users/<int:user_id>/reset-password')
+api.add_resource(AdminAuditLog, '/api/v1/admin/audit-log')
 api.add_resource(Notes, '/api/v1/notes')
 api.add_resource(Trash, '/api/v1/notes/trash')
 api.add_resource(NoteResource, '/api/v1/notes/<int:note_id>')

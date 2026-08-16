@@ -47,6 +47,15 @@ class PasswordResetSchema(Schema):
 class EmailVerificationSchema(Schema):
     token = fields.Str(required=True)
 
+class AuditLogSchema(Schema):
+    id = fields.Int(dump_only=True)
+    actor_username = fields.Str(dump_only=True)
+    action = fields.Str(dump_only=True)
+    target_type = fields.Str(dump_only=True)
+    target_id = fields.Int(dump_only=True, allow_none=True)
+    details = fields.Str(dump_only=True, allow_none=True)
+    created_at = fields.DateTime(dump_only=True)
+
 class NoteSchema(Schema):
     id = fields.Int(dump_only=True)
     title = fields.Str(required=True, validate=Length(max=20, error="Title max 20 chars"))
