@@ -11,7 +11,7 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from schemas import (
     UserRegisterSchema, LoginSchema, UserSchema, UserUpdateSchema,
     SelfUpdateSchema, PasswordChangeSchema, PasswordResetSchema, EmailVerificationSchema,
-    NoteSchema, NoteCreateSchema, NoteUpdateSchema,
+    NoteSchema, NoteCreateSchema, NoteUpdateSchema, AuditLogSchema,
 )
 
 CSRF_NOTE = (
@@ -52,6 +52,7 @@ for name, schema in [
     ("Note", NoteSchema),
     ("NoteCreate", NoteCreateSchema),
     ("NoteUpdate", NoteUpdateSchema),
+    ("AuditLog", AuditLogSchema),
 ]:
     spec.components.schema(name, schema=schema)
 
@@ -376,6 +377,20 @@ spec.path(
             "description": f"Admin-only. Returns a one-time reset token/path — no email service is configured, so share the link with the user manually. {CSRF_NOTE}",
             "parameters": [{"in": "path", "name": "user_id", "required": True, "schema": {"type": "integer"}}],
             "responses": {201: _json(description="Reset token created"), 403: _json(description="Admin access required")},
+        }
+    },
+)
+
+spec.path(
+    path="/api/v1/admin/audit-log",
+    operations={
+        "get": {
+            "summary": "List admin actions on user accounts",
+            "tags": ["Admin"],
+            "security": JWT_AUTH,
+            "description": "Admin-only. Covers user creation, edits, deletion, and password reset issuance, newest first.",
+            "parameters": PAGE_QUERY_PARAMS,
+            "responses": {200: {"description": "Paginated audit log", "content": {"application/json": {"schema": _paginated(AuditLogSchema)}}}, 403: _json(description="Admin access required")},
         }
     },
 )

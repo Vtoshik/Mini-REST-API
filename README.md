@@ -155,8 +155,9 @@ Interactive Swagger UI at http://localhost:5000/api/v1/docs (raw spec at `/api/v
 | /api/v1/admin/users/<id> | PUT    | Update username/email/status   | JWT (admin or self for username/email; admin only for status) |
 | /api/v1/admin/users/<id> | DELETE | Delete user                    | JWT (admin)    |
 | /api/v1/admin/users/<id>/reset-password | POST | Create a password reset link for a user | JWT (admin) |
+| /api/v1/admin/audit-log  | GET    | List admin actions on user accounts, paginated, newest first | JWT (admin) |
 
-The three paginated endpoints above accept `page` and `per_page` query params (`per_page` capped at 100, default 20) and return `{"data": [...], "pagination": {"page", "per_page", "total", "total_pages"}}` instead of a bare list.
+The four paginated endpoints above accept `page` and `per_page` query params (`per_page` capped at 100, default 20) and return `{"data": [...], "pagination": {"page", "per_page", "total", "total_pages"}}` instead of a bare list.
 
 ### Frontend Routes
 
@@ -173,6 +174,7 @@ The three paginated endpoints above accept `page` and `per_page` query params (`
 | /admin         | User list (admin-only)                     |
 | /admin/new     | Create a user (admin-only)                 |
 | /admin/<id>    | View/edit/delete a user (admin-only)       |
+| /admin/audit-log | View the admin action log (admin-only)   |
 | /reset-password/<token> | Complete a password reset (public)   |
 | /verify-email/<token> | Verify a new account's email (public)  |
 
@@ -185,6 +187,7 @@ Rate Limiting: 10/min for /api/v1/login, 5/min for /api/v1/register, 200/day glo
 Account Lockout: after 5 failed login attempts for a given account, it's locked for 15 minutes (returns 423), independent of the IP-based rate limit above.
 Email Verification: new accounts can't log in until their email is verified. Since no email service is configured, POST /api/v1/register returns the verification link directly instead of emailing it — a real deployment would email it.
 CORS: Restricted to localhost:3000, with credentials enabled so the JWT cookie is sent cross-origin.
+Audit Trail: admin actions on user accounts (create, edit, delete, password reset issuance) are recorded with the acting admin, target, and timestamp, viewable at /admin/audit-log.
 
 ## Future improvements
 
