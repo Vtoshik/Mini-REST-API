@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { serverFetch } from "@/lib/serverFetch";
-import { Note } from "@/lib/types";
+import { Note, Paginated } from "@/lib/types";
 import { TrashList } from "@/components/TrashList";
+import { Pagination } from "@/components/Pagination";
 
-export default async function TrashPage() {
-  const notes = await serverFetch<Note[]>("/api/v1/notes/trash");
+export default async function TrashPage({ searchParams }: PageProps<"/notes/trash">) {
+  const { page } = await searchParams;
+  const pageParam = Array.isArray(page) ? page[0] : page;
+  const notes = await serverFetch<Paginated<Note>>(`/api/v1/notes/trash?page=${pageParam ?? 1}`);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-16">
@@ -27,7 +30,8 @@ export default async function TrashPage() {
         Trashed notes stay here until you restore or permanently delete them.
       </p>
 
-      <TrashList notes={notes ?? []} />
+      <TrashList notes={notes?.data ?? []} />
+      {notes && <Pagination pagination={notes.pagination} basePath="/notes/trash" />}
     </main>
   );
 }

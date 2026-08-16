@@ -17,3 +17,15 @@ export interface Note {
   created_at?: string;
   deleted_at?: string | null;
 }
+
+export interface Pagination {
+  page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
+}
+
+export interface Paginated<T> {
+  data: T[];
+  pagination: Pagination;
+}

@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import { serverFetch } from "@/lib/serverFetch";
-import { Note } from "@/lib/types";
+import { Note, Paginated } from "@/lib/types";
 import { NotesList } from "@/components/NotesList";
 import { LogoutButton } from "@/components/LogoutButton";
+import { Pagination } from "@/components/Pagination";
 
-export default async function NotesPage() {
+export default async function NotesPage({ searchParams }: PageProps<"/notes">) {
+  const { page } = await searchParams;
+  const pageParam = Array.isArray(page) ? page[0] : page;
   const [user, notes] = await Promise.all([
     getCurrentUser(),
-    serverFetch<Note[]>("/api/v1/notes"),
+    serverFetch<Paginated<Note>>(`/api/v1/notes?page=${pageParam ?? 1}`),
   ]);
 
   return (
@@ -56,7 +59,8 @@ export default async function NotesPage() {
         </Link>
       </div>
 
-      <NotesList notes={notes ?? []} />
+      <NotesList notes={notes?.data ?? []} />
+      {notes && <Pagination pagination={notes.pagination} basePath="/notes" />}
     </main>
   );
 }

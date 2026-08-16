@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import { serverFetch } from "@/lib/serverFetch";
-import { User } from "@/lib/types";
+import { User, Paginated } from "@/lib/types";
 import { UsersList } from "@/components/UsersList";
 import { LogoutButton } from "@/components/LogoutButton";
+import { Pagination } from "@/components/Pagination";
 
-export default async function AdminPage() {
+export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
+  const { page } = await searchParams;
+  const pageParam = Array.isArray(page) ? page[0] : page;
   const [user, users] = await Promise.all([
     getCurrentUser(),
-    serverFetch<User[]>("/api/v1/admin/users"),
+    serverFetch<Paginated<User>>(`/api/v1/admin/users?page=${pageParam ?? 1}`),
   ]);
 
   return (
@@ -45,7 +48,8 @@ export default async function AdminPage() {
         </Link>
       </div>
 
-      <UsersList users={users ?? []} />
+      <UsersList users={users?.data ?? []} />
+      {users && <Pagination pagination={users.pagination} basePath="/admin" />}
     </main>
   );
 }
