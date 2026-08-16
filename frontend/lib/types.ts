@@ -18,6 +18,16 @@ export interface Note {
   deleted_at?: string | null;
 }
 
+export interface AuditLogEntry {
+  id: number;
+  actor_username: string;
+  action: string;
+  target_type: string;
+  target_id: number | null;
+  details: string | null;
+  created_at: string;
+}
+
 export interface Pagination {
   page: number;
   per_page: number;

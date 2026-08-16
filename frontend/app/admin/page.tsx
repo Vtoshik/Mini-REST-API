@@ -40,12 +40,20 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
         <p className="text-sm text-ink-muted">
           Signed in as <span className="font-display text-ink">{user?.username}</span>
         </p>
-        <Link
-          href="/admin/new"
-          className="rounded-sm bg-accent px-4 py-2 font-display text-sm font-medium text-paper-card transition-colors hover:bg-accent-hover"
-        >
-          New user
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/audit-log"
+            className="rounded-sm border border-ink px-3 py-1.5 font-display text-xs font-medium text-ink transition-colors hover:border-accent hover:text-accent"
+          >
+            Audit log
+          </Link>
+          <Link
+            href="/admin/new"
+            className="rounded-sm bg-accent px-4 py-2 font-display text-sm font-medium text-paper-card transition-colors hover:bg-accent-hover"
+          >
+            New user
+          </Link>
+        </div>
       </div>
 
       <UsersList users={users?.data ?? []} />
