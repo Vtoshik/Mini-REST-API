@@ -2,15 +2,33 @@
 from database import db
 from models.user import User
 from models.note import Note
+from models.password_reset_token import PasswordResetToken
+from models.email_verification_token import EmailVerificationToken
+from models.audit_log import AuditLog
 from flask import request, Blueprint, abort, jsonify, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_restful import Api, Resource
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity, set_access_cookies, unset_jwt_cookies
 from sqlalchemy.exc import IntegrityError
-from schemas import UserRegisterSchema, NoteSchema, UserSchema, UserUpdateSchema, LoginSchema, NoteCreateSchema, NoteUpdateSchema
+from schemas import (
+    UserRegisterSchema, NoteSchema, UserSchema, UserUpdateSchema, LoginSchema,
+    NoteCreateSchema, NoteUpdateSchema, SelfUpdateSchema, PasswordChangeSchema,
+    PasswordResetSchema, EmailVerificationSchema, AuditLogSchema,
+)
 from marshmallow import ValidationError
 import logging
-from flask_wtf.csrf import validate_csrf
+import secrets
+from datetime import datetime, timedelta, timezone
+from flask_wtf.csrf import validate_csrf, generate_csrf
+from flask_jwt_extended.exceptions import JWTExtendedException
+from jwt.exceptions import PyJWTError
+
+PASSWORD_RESET_TOKEN_LIFETIME = timedelta(hours=1)
+EMAIL_VERIFICATION_TOKEN_LIFETIME = timedelta(hours=24)
+LOGIN_LOCKOUT_THRESHOLD = 5
+LOGIN_LOCKOUT_DURATION = timedelta(minutes=15)
+DEFAULT_PAGE_SIZE = 20
+MAX_PAGE_SIZE = 100
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -18,7 +36,7 @@ logger = logging.getLogger(__name__)
 api_bp = Blueprint('api_bp', __name__)
 api = Api(api_bp)
 
-CSRF_EXEMPT_ENDPOINTS = {'api_bp.login', 'api_bp.register', 'api_bp.logout'}
+CSRF_EXEMPT_ENDPOINTS = {'api_bp.login', 'api_bp.register', 'api_bp.logout', 'api_bp.verifyemail'}
 
 @api_bp.before_request
 def check_csrf_token():
@@ -44,11 +62,51 @@ def authenticate_request():
         return None
     return user
 
+def _is_locked(user):
+    locked_until = user.locked_until
+    if not locked_until:
+        return False
+    if locked_until.tzinfo is None:
+        locked_until = locked_until.replace(tzinfo=timezone.utc)
+    return locked_until > datetime.now(timezone.utc)
+
 def authenticate_and_check_admin():
     user = authenticate_request()
     if not user or user.status != 'admin':
         abort(403, "Admin access required")
     return user
+
+def paginate_query(query, schema):
+    try:
+        page = int(request.args.get('page', 1))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = int(request.args.get('per_page', DEFAULT_PAGE_SIZE))
+    except (TypeError, ValueError):
+        per_page = DEFAULT_PAGE_SIZE
+    page = max(page, 1)
+    per_page = min(max(per_page, 1), MAX_PAGE_SIZE)
+
+    total = query.order_by(None).count()
+    items = query.offset((page - 1) * per_page).limit(per_page).all()
+    total_pages = max((total + per_page - 1) // per_page, 1)
+
+    return {
+        "data": schema.dump(items),
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": total_pages,
+        },
+    }
+
+@api_bp.errorhandler(JWTExtendedException)
+@api_bp.errorhandler(PyJWTError)
+def handle_jwt_error(e):
+    logger.warning(f"JWT error: {str(e)}")
+    return {"message": "Authentication required"}, 401
 
 @api_bp.errorhandler(Exception)
 def handle_exception(e):
@@ -63,13 +121,28 @@ class Login(Resource):
         except ValidationError as error:
             return {"error": "validation_error", "message": error.messages, "code": 400}, 400
         user = User.query.filter_by(username=data['username']).first()
+
+        if user and _is_locked(user):
+            return {"message": "Account temporarily locked after too many failed attempts. Try again later."}, 423
+
         if user and check_password_hash(user.password, data['password']):
+            if not user.email_verified:
+                return {"message": "Please verify your email before logging in."}, 403
+            user.failed_login_attempts = 0
+            user.locked_until = None
+            db.session.commit()
             access_token = create_access_token(identity=str(user.id))
             logger.debug(f"Login successful for user {data['username']}, token created")
             response = jsonify({"message": "Login successful", 'user_id': user.id, 'user_status': user.status})
             set_access_cookies(response, access_token)
             flask_response = make_response(response)
             return flask_response
+
+        if user:
+            user.failed_login_attempts += 1
+            if user.failed_login_attempts >= LOGIN_LOCKOUT_THRESHOLD:
+                user.locked_until = datetime.now(timezone.utc) + LOGIN_LOCKOUT_DURATION
+            db.session.commit()
         return {"message": "Invalid credentials"}, 401
 
            
@@ -91,13 +164,29 @@ class Register(Resource):
         try:
             db.session.add(user)
             db.session.commit()
-            return {"message": "User created successfully", "user_id": user.id}, 201
         except IntegrityError:
             db.session.rollback()
             return {"message": "User with this email or username already exists."}, 400
         except Exception as e:
             db.session.rollback()
             return {"message": "Server error"}, 500
+
+        # No email service is configured, so — same as the admin password
+        # reset flow — the verification link is returned directly rather
+        # than emailed. A real deployment would email this instead.
+        verify_token = EmailVerificationToken(
+            token=secrets.token_urlsafe(32),
+            user_id=user.id,
+            expires_at=datetime.now(timezone.utc) + EMAIL_VERIFICATION_TOKEN_LIFETIME,
+        )
+        db.session.add(verify_token)
+        db.session.commit()
+        return {
+            "message": "User created successfully",
+            "user_id": user.id,
+            "verify_token": verify_token.token,
+            "verify_path": f"/verify-email/{verify_token.token}",
+        }, 201
 
 
 class Users(Resource):
@@ -108,9 +197,8 @@ class Users(Resource):
             return {"message": "Authentication required"}, 401
         if user.status != 'admin':
             return {"message": "Admin access required"}, 403
-        users = User.query.all()
-        users_schema = UserSchema(many=True)
-        return users_schema.dump(users), 200
+        query = User.query.order_by(User.id)
+        return paginate_query(query, UserSchema(many=True)), 200
 
     @jwt_required()
     def post(self):
@@ -131,8 +219,14 @@ class Users(Resource):
             return {"message": "User with this email or username already exists."}, 400
         hashed_password = generate_password_hash(data['password'])
         new_user = User(username=data['username'], email=data['email'], password=hashed_password)
+        # Admin vouches for the email directly here, unlike self-registration
+        # — there's no verification link issued on this path, so leaving
+        # email_verified False would lock the account out permanently.
+        new_user.email_verified = True
         try:
             db.session.add(new_user)
+            db.session.flush()
+            db.session.add(AuditLog(user, "user_created", "user", new_user.id, new_user.username))
             db.session.commit()
             return {"message": "User created successfully", "user_id": new_user.id}, 201
         except IntegrityError:
@@ -178,10 +272,14 @@ class UserResource(Resource):
         if 'email' in data:
             target_user.email = data['email']
         if 'status' in data:
+            if user.status != 'admin':
+                return {"message": "Only admins can change account status"}, 403
             target_user.status = data['status']
-        if 'password' in data and data['password']:  # Only update if provided
-            target_user.password = generate_password_hash(data['password'])
         try:
+            if user.status == 'admin' and data:
+                db.session.add(AuditLog(
+                    user, "user_updated", "user", target_user.id, ", ".join(sorted(data.keys()))
+                ))
             db.session.commit()
             return {"message": "User updated"}, 200
         except IntegrityError:
@@ -199,7 +297,12 @@ class UserResource(Resource):
         if user.status != 'admin':
             return {"message": "Admin access required"}, 403
         target_user = User.query.get_or_404(user_id)
+        if target_user.id == user.id:
+            return {"message": "You cannot delete your own account"}, 400
+        if target_user.status == 'admin' and User.query.filter_by(status='admin').count() <= 1:
+            return {"message": "Cannot delete the last remaining admin account"}, 400
         try:
+            db.session.add(AuditLog(user, "user_deleted", "user", target_user.id, target_user.username))
             db.session.delete(target_user)
             db.session.commit()
             return {"message": "User deleted"}, 200
@@ -216,9 +319,12 @@ class Notes(Resource):
         user = authenticate_request()
         if not user:
             return {"message": "Authentication required"}, 401
-        notes = Note.query.filter_by(user_id=user.id).all()
-        schema = NoteSchema(many=True)
-        return schema.dump(notes), 200
+        query = (
+            Note.query.filter_by(user_id=user.id)
+            .filter(Note.deleted_at.is_(None))
+            .order_by(Note.pinned.desc(), Note.created_at.desc())
+        )
+        return paginate_query(query, NoteSchema(many=True)), 200
 
     @jwt_required()
     def post(self):
@@ -252,7 +358,9 @@ class NoteResource(Resource):
         note = Note.query.get_or_404(note_id)
         if note.user_id != user.id:
             return {"message": "Forbidden"}, 403
-        schema = NoteSchema(); 
+        if note.deleted_at is not None:
+            abort(404)
+        schema = NoteSchema();
         return schema.dump(note), 200
 
     @jwt_required()
@@ -260,22 +368,28 @@ class NoteResource(Resource):
         user = authenticate_request()
         if not user:
             return {"message": "Authentication required"}, 401
-        
+
         note = Note.query.get_or_404(note_id)
         if note.user_id != user.id:
             return {"message": "Forbidden"}, 403
+        if note.deleted_at is not None:
+            abort(404)
 
         schema = NoteUpdateSchema(partial=True)
         try:
             data = schema.load(request.get_json())
         except ValidationError as error:
             return {"errors": error.messages}, 400
-            
+
         # Update fields from validated data
         if 'title' in data:
             note.title = data['title']
         if 'content' in data:
             note.content = data['content']
+        if 'category' in data:
+            note.category = data['category']
+        if 'pinned' in data:
+            note.pinned = data['pinned']
 
         try:
             db.session.commit()
@@ -297,18 +411,64 @@ class NoteResource(Resource):
         note = Note.query.get_or_404(note_id)
         if note.user_id != user.id:
             return {"message": "Forbidden"}, 403
+        if note.deleted_at is not None:
+            abort(404)
         try:
-            db.session.delete(note)
+            note.deleted_at = datetime.now(timezone.utc)
             db.session.commit()
-            logger.info(f"Note {note_id} deleted by user {user.id}")
-            return {"message": "Note deleted"}, 204
-        except IntegrityError:
-            db.session.rollback()
-            return {"message": "Note with this id does not exist"}, 400
+            logger.info(f"Note {note_id} moved to trash by user {user.id}")
+            return {"message": "Note moved to trash"}, 200
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Error deleting note {note_id}: {str(e)}", exc_info=True)
+            logger.error(f"Error trashing note {note_id}: {str(e)}", exc_info=True)
             return {"message": "Failed to delete note", "error": str(e)}, 500
+
+class Trash(Resource):
+    @jwt_required()
+    def get(self):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        query = (
+            Note.query.filter_by(user_id=user.id)
+            .filter(Note.deleted_at.isnot(None))
+            .order_by(Note.deleted_at.desc())
+        )
+        return paginate_query(query, NoteSchema(many=True)), 200
+
+class NoteRestore(Resource):
+    @jwt_required()
+    def post(self, note_id):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        note = Note.query.get_or_404(note_id)
+        if note.user_id != user.id:
+            return {"message": "Forbidden"}, 403
+        if note.deleted_at is None:
+            abort(404)
+        try:
+            note.deleted_at = None
+            db.session.commit()
+            return {"message": "Note restored"}, 200
+        except IntegrityError:
+            db.session.rollback()
+            return {"message": "Note with this title already exists for this user"}, 400
+
+class NotePermanentDelete(Resource):
+    @jwt_required()
+    def delete(self, note_id):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        note = Note.query.get_or_404(note_id)
+        if note.user_id != user.id:
+            return {"message": "Forbidden"}, 403
+        if note.deleted_at is None:
+            abort(404)
+        db.session.delete(note)
+        db.session.commit()
+        return {"message": "Note permanently deleted"}, 200
 
 class Logout(Resource):
     def post(self):
@@ -316,11 +476,138 @@ class Logout(Resource):
         unset_jwt_cookies(response)
         return make_response(response)
 
+class CsrfToken(Resource):
+    def get(self):
+        return {"csrf_token": generate_csrf()}, 200
+
+class Me(Resource):
+    @jwt_required()
+    def get(self):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        return {"id": user.id, "username": user.username, "email": user.email, "status": user.status}, 200
+
+    @jwt_required()
+    def put(self):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        schema = SelfUpdateSchema(partial=True)
+        try:
+            data = schema.load(request.get_json())
+        except ValidationError as error:
+            return {"errors": error.messages}, 400
+        if 'username' in data:
+            user.username = data['username']
+        if 'email' in data:
+            user.email = data['email']
+        try:
+            db.session.commit()
+            return {"message": "Profile updated"}, 200
+        except IntegrityError:
+            db.session.rollback()
+            return {"message": "User with this email or username already exists."}, 400
+        except Exception as e:
+            db.session.rollback()
+            return {"message": "Server error", "error": str(e)}, 500
+
+class MePassword(Resource):
+    @jwt_required()
+    def post(self):
+        user = authenticate_request()
+        if not user:
+            return {"message": "Authentication required"}, 401
+        schema = PasswordChangeSchema()
+        try:
+            data = schema.load(request.get_json())
+        except ValidationError as error:
+            return {"errors": error.messages}, 400
+        if not check_password_hash(user.password, data['current_password']):
+            return {"message": "Current password is incorrect"}, 400
+        user.password = generate_password_hash(data['new_password'])
+        db.session.commit()
+        return {"message": "Password updated"}, 200
+
+class AdminPasswordReset(Resource):
+    @jwt_required()
+    def post(self, user_id):
+        admin = authenticate_and_check_admin()
+        target_user = User.query.get_or_404(user_id)
+        # Drop this user's previous unused tokens rather than letting one
+        # pile up per reset request — old ones are useless once a fresh
+        # token is issued anyway.
+        PasswordResetToken.query.filter_by(user_id=target_user.id, used=False).delete()
+        token = PasswordResetToken(
+            token=secrets.token_urlsafe(32),
+            user_id=target_user.id,
+            expires_at=datetime.now(timezone.utc) + PASSWORD_RESET_TOKEN_LIFETIME,
+        )
+        db.session.add(token)
+        db.session.add(AuditLog(
+            admin, "password_reset_issued", "user", target_user.id, target_user.username
+        ))
+        db.session.commit()
+        return {
+            "message": "Password reset token created",
+            "reset_token": token.token,
+            "reset_path": f"/reset-password/{token.token}",
+        }, 201
+
+class PasswordReset(Resource):
+    def post(self):
+        schema = PasswordResetSchema()
+        try:
+            data = schema.load(request.get_json())
+        except ValidationError as error:
+            return {"errors": error.messages}, 400
+        token = PasswordResetToken.query.filter_by(token=data['token']).first()
+        if not token or not token.is_valid():
+            return {"message": "This reset link is invalid or has expired"}, 400
+        user = User.query.get_or_404(token.user_id)
+        user.password = generate_password_hash(data['password'])
+        token.used = True
+        db.session.commit()
+        return {"message": "Password reset successful"}, 200
+
+class VerifyEmail(Resource):
+    def post(self):
+        schema = EmailVerificationSchema()
+        try:
+            data = schema.load(request.get_json())
+        except ValidationError as error:
+            return {"errors": error.messages}, 400
+        token = EmailVerificationToken.query.filter_by(token=data['token']).first()
+        if not token or not token.is_valid():
+            return {"message": "This verification link is invalid or has expired"}, 400
+        user = User.query.get_or_404(token.user_id)
+        user.email_verified = True
+        token.used = True
+        db.session.commit()
+        return {"message": "Email verified"}, 200
+
+class AdminAuditLog(Resource):
+    @jwt_required()
+    def get(self):
+        authenticate_and_check_admin()
+        query = AuditLog.query.order_by(AuditLog.created_at.desc())
+        return paginate_query(query, AuditLogSchema(many=True)), 200
+
 # Resources
 api.add_resource(Logout, '/api/v1/logout')
 api.add_resource(Login, '/api/v1/login')
 api.add_resource(Register, '/api/v1/register')
+api.add_resource(CsrfToken, '/api/v1/csrf-token')
+api.add_resource(Me, '/api/v1/me')
+api.add_resource(MePassword, '/api/v1/me/password')
+api.add_resource(PasswordReset, '/api/v1/reset-password')
+api.add_resource(VerifyEmail, '/api/v1/verify-email')
 api.add_resource(Users, '/api/v1/admin/users')
 api.add_resource(UserResource, '/api/v1/admin/users/<int:user_id>')
+api.add_resource(AdminPasswordReset, '/api/v1/admin/users/<int:user_id>/reset-password')
+api.add_resource(AdminAuditLog, '/api/v1/admin/audit-log')
 api.add_resource(Notes, '/api/v1/notes')
+api.add_resource(Trash, '/api/v1/notes/trash')
 api.add_resource(NoteResource, '/api/v1/notes/<int:note_id>')
+api.add_resource(NoteRestore, '/api/v1/notes/<int:note_id>/restore')
+api.add_resource(NotePermanentDelete, '/api/v1/notes/<int:note_id>/permanent')

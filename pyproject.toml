@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.16.4",
+    "apispec>=6.10.0",
     "flask>=3.1.2",
     "flask-cors>=6.0.1",
     "flask-jwt-extended>=4.7.1",
@@ -14,6 +15,7 @@ dependencies = [
     "flask-migrate>=4.1.0",
     "flask-restful>=0.3.10",
     "flask-sqlalchemy>=3.1.1",
+    "flask-swagger-ui>=5.32.12",
     "flask-wtf>=1.2.2",
     "psycopg2-binary>=2.9.10",
     "pytest>=8.4.1",

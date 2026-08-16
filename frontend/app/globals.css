@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #e7ebee;
+  --paper-card: #f8f9f6;
+  --grid: #b9c6d1;
+  --rule: #7c8ea3;
+  --ink: #16202c;
+  --ink-muted: #4b5a68;
+  --accent: #2f5de3;
+  --accent-hover: #2448b8;
+  --signal: #c4432b;
+  --signal-hover: #a3361f;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-card: var(--paper-card);
+  --color-grid: var(--grid);
+  --color-rule: var(--rule);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-signal: var(--signal);
+  --color-signal-hover: var(--signal-hover);
+  --font-display: var(--font-mono-stamp);
+  --font-body: var(--font-sans-body);
+}
+
+body {
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: -1px -1px;
+  color: var(--ink);
+  font-family: var(--font-sans-body), system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
