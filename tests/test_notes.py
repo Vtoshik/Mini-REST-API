@@ -72,13 +72,38 @@ def test_list_notes_excludes_trashed(client, auth_headers):
 
     response = client.get('/api/v1/notes', headers=auth_headers)
     assert response.status_code == 200
-    titles = [n['title'] for n in response.json]
+    titles = [n['title'] for n in response.json['data']]
     assert titles == ["Active"]
 
 
 def test_list_notes_requires_auth(client):
     response = client.get('/api/v1/notes')
     assert response.status_code == 401
+
+
+def test_list_notes_is_paginated(client, auth_headers):
+    for i in range(3):
+        create_note(client, auth_headers, title=f"Note {i}")
+
+    response = client.get('/api/v1/notes?page=1&per_page=2', headers=auth_headers)
+    assert response.status_code == 200
+    assert len(response.json['data']) == 2
+    assert response.json['pagination'] == {
+        "page": 1, "per_page": 2, "total": 3, "total_pages": 2
+    }
+
+    response = client.get('/api/v1/notes?page=2&per_page=2', headers=auth_headers)
+    assert len(response.json['data']) == 1
+    assert response.json['pagination']['page'] == 2
+
+
+def test_list_notes_pinned_first(client, auth_headers):
+    create_note(client, auth_headers, title="Unpinned")
+    pinned_id = create_note(client, auth_headers, title="Pinned").json['data']['note_id']
+    client.patch(f'/api/v1/notes/{pinned_id}', json={"pinned": True}, headers=auth_headers)
+
+    response = client.get('/api/v1/notes', headers=auth_headers)
+    assert response.json['data'][0]['id'] == pinned_id
 
 
 def test_get_note(client, auth_headers):
@@ -190,15 +215,16 @@ def test_list_trash(client, auth_headers):
     client.delete(f'/api/v1/notes/{note_id}', headers=auth_headers)
     response = client.get('/api/v1/notes/trash', headers=auth_headers)
     assert response.status_code == 200
-    assert len(response.json) == 1
-    assert response.json[0]['id'] == note_id
+    assert len(response.json['data']) == 1
+    assert response.json['data'][0]['id'] == note_id
+    assert response.json['pagination']['total'] == 1
 
 
 def test_list_trash_excludes_active(client, auth_headers):
     create_note(client, auth_headers)
     response = client.get('/api/v1/notes/trash', headers=auth_headers)
     assert response.status_code == 200
-    assert response.json == []
+    assert response.json['data'] == []
 
 
 def test_restore_note(client, auth_headers):
@@ -239,7 +265,7 @@ def test_permanent_delete(client, auth_headers):
     assert response.status_code == 200
 
     trash_response = client.get('/api/v1/notes/trash', headers=auth_headers)
-    assert trash_response.json == []
+    assert trash_response.json['data'] == []
 
 
 def test_permanent_delete_requires_trashed_first(client, auth_headers):

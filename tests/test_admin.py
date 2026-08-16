@@ -15,8 +15,20 @@ def test_list_users_requires_auth(client):
 def test_list_users_as_admin(client, admin_headers):
     response = client.get('/api/v1/admin/users', headers=admin_headers)
     assert response.status_code == 200
-    assert isinstance(response.json, list)
-    assert any(u['username'] == "adminuser" for u in response.json)
+    assert isinstance(response.json['data'], list)
+    assert any(u['username'] == "adminuser" for u in response.json['data'])
+    assert response.json['pagination']['page'] == 1
+
+
+def test_list_users_is_paginated(client, admin_headers, make_user):
+    for i in range(3):
+        make_user(username=f"paged{i}", email=f"paged{i}@example.com")
+
+    response = client.get('/api/v1/admin/users?page=1&per_page=2', headers=admin_headers)
+    assert response.status_code == 200
+    assert len(response.json['data']) == 2
+    assert response.json['pagination']['per_page'] == 2
+    assert response.json['pagination']['total'] >= 4
 
 
 def test_create_user_as_admin(client, admin_headers):

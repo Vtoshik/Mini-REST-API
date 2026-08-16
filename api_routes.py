@@ -26,6 +26,8 @@ PASSWORD_RESET_TOKEN_LIFETIME = timedelta(hours=1)
 EMAIL_VERIFICATION_TOKEN_LIFETIME = timedelta(hours=24)
 LOGIN_LOCKOUT_THRESHOLD = 5
 LOGIN_LOCKOUT_DURATION = timedelta(minutes=15)
+DEFAULT_PAGE_SIZE = 20
+MAX_PAGE_SIZE = 100
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -72,6 +74,32 @@ def authenticate_and_check_admin():
     if not user or user.status != 'admin':
         abort(403, "Admin access required")
     return user
+
+def paginate_query(query, schema):
+    try:
+        page = int(request.args.get('page', 1))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = int(request.args.get('per_page', DEFAULT_PAGE_SIZE))
+    except (TypeError, ValueError):
+        per_page = DEFAULT_PAGE_SIZE
+    page = max(page, 1)
+    per_page = min(max(per_page, 1), MAX_PAGE_SIZE)
+
+    total = query.order_by(None).count()
+    items = query.offset((page - 1) * per_page).limit(per_page).all()
+    total_pages = max((total + per_page - 1) // per_page, 1)
+
+    return {
+        "data": schema.dump(items),
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": total_pages,
+        },
+    }
 
 @api_bp.errorhandler(JWTExtendedException)
 @api_bp.errorhandler(PyJWTError)
@@ -168,9 +196,8 @@ class Users(Resource):
             return {"message": "Authentication required"}, 401
         if user.status != 'admin':
             return {"message": "Admin access required"}, 403
-        users = User.query.all()
-        users_schema = UserSchema(many=True)
-        return users_schema.dump(users), 200
+        query = User.query.order_by(User.id)
+        return paginate_query(query, UserSchema(many=True)), 200
 
     @jwt_required()
     def post(self):
@@ -284,9 +311,12 @@ class Notes(Resource):
         user = authenticate_request()
         if not user:
             return {"message": "Authentication required"}, 401
-        notes = Note.query.filter_by(user_id=user.id).filter(Note.deleted_at.is_(None)).all()
-        schema = NoteSchema(many=True)
-        return schema.dump(notes), 200
+        query = (
+            Note.query.filter_by(user_id=user.id)
+            .filter(Note.deleted_at.is_(None))
+            .order_by(Note.pinned.desc(), Note.created_at.desc())
+        )
+        return paginate_query(query, NoteSchema(many=True)), 200
 
     @jwt_required()
     def post(self):
@@ -391,14 +421,12 @@ class Trash(Resource):
         user = authenticate_request()
         if not user:
             return {"message": "Authentication required"}, 401
-        notes = (
+        query = (
             Note.query.filter_by(user_id=user.id)
             .filter(Note.deleted_at.isnot(None))
             .order_by(Note.deleted_at.desc())
-            .all()
         )
-        schema = NoteSchema(many=True)
-        return schema.dump(notes), 200
+        return paginate_query(query, NoteSchema(many=True)), 200
 
 class NoteRestore(Resource):
     @jwt_required()
