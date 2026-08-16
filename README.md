@@ -186,5 +186,8 @@ CORS: Restricted to localhost:3000, with credentials enabled so the JWT cookie i
 
 ## Future improvements
 
-- Implement pagination for large note/user lists.
 - Add server-side caching (e.g., Flask-Caching) for API performance.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
