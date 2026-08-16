@@ -63,6 +63,29 @@ def _json(schema_name=None, description=""):
     return body
 
 
+PAGINATION_PROPS = {
+    "page": {"type": "integer"},
+    "per_page": {"type": "integer"},
+    "total": {"type": "integer"},
+    "total_pages": {"type": "integer"},
+}
+
+PAGE_QUERY_PARAMS = [
+    {"in": "query", "name": "page", "schema": {"type": "integer", "default": 1}},
+    {"in": "query", "name": "per_page", "schema": {"type": "integer", "default": 20, "maximum": 100}},
+]
+
+
+def _paginated(item_schema):
+    return {
+        "type": "object",
+        "properties": {
+            "data": {"type": "array", "items": item_schema},
+            "pagination": {"type": "object", "properties": PAGINATION_PROPS},
+        },
+    }
+
+
 spec.path(
     path="/api/v1/csrf-token",
     operations={
@@ -200,7 +223,8 @@ spec.path(
             "summary": "List the current user's active (non-trashed) notes",
             "tags": ["Notes"],
             "security": JWT_AUTH,
-            "responses": {200: {"description": "Notes", "content": {"application/json": {"schema": NoteSchema(many=True)}}}},
+            "parameters": PAGE_QUERY_PARAMS,
+            "responses": {200: {"description": "Paginated notes", "content": {"application/json": {"schema": _paginated(NoteSchema)}}}},
         },
         "post": {
             "summary": "Create a note",
@@ -223,7 +247,8 @@ spec.path(
             "summary": "List the current user's trashed notes",
             "tags": ["Notes"],
             "security": JWT_AUTH,
-            "responses": {200: {"description": "Trashed notes", "content": {"application/json": {"schema": NoteSchema(many=True)}}}},
+            "parameters": PAGE_QUERY_PARAMS,
+            "responses": {200: {"description": "Paginated trashed notes", "content": {"application/json": {"schema": _paginated(NoteSchema)}}}},
         }
     },
 )
@@ -297,7 +322,8 @@ spec.path(
             "summary": "List all users",
             "tags": ["Admin"],
             "security": JWT_AUTH,
-            "responses": {200: {"description": "Users", "content": {"application/json": {"schema": UserSchema(many=True)}}}, 403: _json(description="Admin access required")},
+            "parameters": PAGE_QUERY_PARAMS,
+            "responses": {200: {"description": "Paginated users", "content": {"application/json": {"schema": _paginated(UserSchema)}}}, 403: _json(description="Admin access required")},
         },
         "post": {
             "summary": "Create a user",

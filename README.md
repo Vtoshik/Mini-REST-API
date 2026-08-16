@@ -141,20 +141,22 @@ Interactive Swagger UI at http://localhost:5000/api/v1/docs (raw spec at `/api/v
 | /api/v1/me               | PUT    | Update own username/email     | JWT            |
 | /api/v1/me/password      | POST   | Change own password (requires current password) | JWT |
 | /api/v1/reset-password   | POST   | Complete a password reset with a token | None   |
-| /api/v1/notes            | GET    | List user's active notes       | JWT            |
+| /api/v1/notes            | GET    | List user's active notes, paginated | JWT       |
 | /api/v1/notes            | POST   | Create a new note (title, content, category) | JWT |
 | /api/v1/notes/<id>       | GET    | Get note details (404 if trashed) | JWT (owner) |
 | /api/v1/notes/<id>       | PATCH  | Update note (title/content/category/pinned) | JWT (owner) |
 | /api/v1/notes/<id>       | DELETE | Move note to trash              | JWT (owner)    |
-| /api/v1/notes/trash      | GET    | List trashed notes             | JWT            |
+| /api/v1/notes/trash      | GET    | List trashed notes, paginated  | JWT            |
 | /api/v1/notes/<id>/restore | POST | Restore a trashed note        | JWT (owner)    |
 | /api/v1/notes/<id>/permanent | DELETE | Permanently delete a trashed note | JWT (owner) |
-| /api/v1/admin/users      | GET    | List all users                 | JWT (admin)    |
+| /api/v1/admin/users      | GET    | List all users, paginated      | JWT (admin)    |
 | /api/v1/admin/users      | POST   | Create a user                  | JWT (admin)    |
 | /api/v1/admin/users/<id> | GET    | Get user details               | JWT (admin)    |
 | /api/v1/admin/users/<id> | PUT    | Update username/email/status   | JWT (admin or self for username/email; admin only for status) |
 | /api/v1/admin/users/<id> | DELETE | Delete user                    | JWT (admin)    |
 | /api/v1/admin/users/<id>/reset-password | POST | Create a password reset link for a user | JWT (admin) |
+
+The three paginated endpoints above accept `page` and `per_page` query params (`per_page` capped at 100, default 20) and return `{"data": [...], "pagination": {"page", "per_page", "total", "total_pages"}}` instead of a bare list.
 
 ### Frontend Routes
 
